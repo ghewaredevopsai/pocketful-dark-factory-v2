@@ -1392,5 +1392,39 @@ class Stage3Import(Stage1Import):
         self.assertEqual((resp[0], resp[1]["error"]["code"]), (status, code), resp)
 
 
+class SignupHistory(Base):
+    """Regression (coordinator 1b39fa08): accounts created by signup open at zero in every historical read."""
+
+    def test_signup_user_history(self):
+        b = call("POST", "/auth/signup", {"email": "new@example.com", "password": "correct horse",
+                                          "display_name": "N"})[1]
+        tok = b["token"]
+        for path in ("/me" + q(as_of="2026-10-04T00:00:00Z"), "/me" + q(known_at=iso_in(0)),
+                     "/me" + q(as_of=iso_in(3600), known_at=iso_in(0))):
+            s, m, _ = call("GET", path, token=tok)
+            self.assertEqual((s, m["balance"], m["available"], m["held"]), (200, 0, 0, 0), path)
+        s, st, _ = call("GET", "/statement", token=tok)
+        self.assertEqual((s, st["entries"], st["opening_balance"], st["closing_balance"]), (200, [], 0, 0))
+        self.assertEqual(call("GET", "/statement" + q(snapshot=st["snapshot"], limit=1), token=tok)[0], 200)
+        p = call("POST", "/payments", {"to_handle": "new", "amount": 300}, self.t["ada"], "k")[1]
+        s, st2, _ = call("GET", "/statement", token=tok)
+        self.assertEqual((st2["opening_balance"], st2["closing_balance"], [e["delta"] for e in st2["entries"]]),
+                         (0, 300, [300]))
+        self.assertEqual(call("GET", "/me" + q(as_of=ts_after(p["created_at"], -1)), token=tok)[1]["balance"], 0)
+        call("POST", "/payments", {"to_handle": "bob", "amount": 100}, tok, "k")
+        call("POST", "/authorizations", {"to_handle": "bob", "amount": 50}, tok, "a")
+        self.assertEqual(corr(tok, call("GET", "/activity", token=tok)[1]["payments"][0]["payment_id"], "c",
+                              expected_revision=1, amount=90, effective_at=iso_in(0), reason="r")[0], 201)
+        exp = call("GET", "/_test/export")[1]
+        reset()
+        self.assertEqual(call("POST", "/_test/import", exp)[0], 204)
+        m = call("GET", "/me" + q(as_of=iso_in(3600)), token=tok)[1]
+        self.assertEqual((m["balance"], m["held"]), (210, 0))  # hold expires by its deadline in that view
+        self.assertEqual(me(tok)["held"], 50)
+        st3 = call("GET", "/statement", token=tok)[1]
+        self.assertEqual((st3["opening_balance"], st3["closing_balance"]), (0, 210))
+        self.assertEqual(call("GET", "/statement" + q(snapshot=st2["snapshot"]), token=tok)[1]["closing_balance"], 300)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

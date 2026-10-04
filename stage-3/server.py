@@ -1566,7 +1566,7 @@ class Handler(BaseHTTPRequestHandler):
             conflicts(st)
             uid = st.new_id("u")
             st.users[uid] = {"id": uid, "email": email, "display_name": display_name, "handle": handle,
-                             "balance": 0, "held": 0, "salt": salt, "hash": h, "n": SCRYPT_N}
+                             "balance": 0, "held": 0, "opening": 0, "salt": salt, "hash": h, "n": SCRYPT_N}
             st.by_email[email.lower()] = uid
             st.by_handle[handle] = uid
             token = secrets.token_urlsafe(32)

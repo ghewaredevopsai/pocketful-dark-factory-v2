@@ -14,7 +14,7 @@ Open http://localhost:8080/ in a browser (UI routes: `/`, `/requests`, `/split`,
 Tests (each starts the server in-process when no base URL is given; pass `http://host:port` to test a container):
 
 ```sh
-python3 test_service.py            # API, concurrency, holds, export/import (incl. a real stage-1 export)
+python3 test_service.py            # API, concurrency, holds, refunds, batches, export/import (real stage-1/2/3 exports)
 python test_ui.py                  # browser behaviours; needs Python Playwright + Chromium
 ```
 
@@ -41,3 +41,10 @@ an opening balance; each hold keeps its lifecycle (creation, captures, close). `
 computed from those records under the same lock: pick each payment's latest revision recorded at or before
 `known_at`, apply it at its effective time, and add hold events known by then. Statement snapshots store the
 computed result and are paged from it.
+
+Refunds and batches (stage 4): a refund is an ordinary payment (receiver → original sender) carrying `refund_of`;
+each payment keeps the list of its refunds, so the refunded amount caps later refunds and corrections. A correction
+batch validates every item, then settlement completeness, then the combined per-user effect against available
+funds and against every historical boundary (all candidate revisions applied together), and only then appends one
+revision per item with a shared `recorded_at` and `correction_batch_id`. All of it runs inside the one lock at the
+operation's single instant, so a rejected batch changes nothing and concurrent writers sharing a revision serialize.

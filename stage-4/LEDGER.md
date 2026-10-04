@@ -362,68 +362,68 @@ Status: `todo`, `done`, `n/a` (with reason). One line per normative statement.
 - R274 done — Stage-3 import accepts this team's stage-1 and stage-2 exports (and its own), accounting for authorizations and captures; tokens, retry records preserved.
 
 ## Stage 4 — Idempotent paths
-- R275 todo — Ten idempotent write paths: POST /payments, /requests, /requests/{id}/pay, /splits, /settlements,
+- R275 done — Ten idempotent write paths: POST /payments, /requests, /requests/{id}/pay, /splits, /settlements,
   /authorizations, /authorizations/{id}/capture, /payments/{id}/corrections, /payments/{id}/refunds,
   /correction-batches; §7 rules (key required, replay 200 with the original body, reuse with another body 409).
 
 ## Stage 4 — Refunds
-- R276 todo — `POST /payments/{payment_id}/refunds`, body `{"amount": n}`, requires an Idempotency-Key; no token 401.
-- R277 todo — Unknown payment → 404 `not_found`.
-- R278 todo — Only the original receiver may refund; anyone else (sender or third party) → 403 `forbidden`.
-- R279 todo — Target may be a direct payment, a request payment, a capture or a settlement payment.
-- R280 todo — Target that is itself a refund → 422 `invalid_refund_target`.
-- R281 todo — Missing/non-integer/out-of-range amount (1..1000000000) → 422 `validation_failed`.
-- R282 todo — Σ refunds of a payment (including this one) > its current corrected amount → 422 `refund_exceeds_payment`.
-- R283 todo — A refund is a new payment receiver → original sender, `refund_of` = target id, `request_id: null`,
+- R276 done — `POST /payments/{payment_id}/refunds`, body `{"amount": n}`, requires an Idempotency-Key; no token 401.
+- R277 done — Unknown payment → 404 `not_found`.
+- R278 done — Only the original receiver may refund; anyone else (sender or third party) → 403 `forbidden`.
+- R279 done — Target may be a direct payment, a request payment, a capture or a settlement payment.
+- R280 done — Target that is itself a refund → 422 `invalid_refund_target`.
+- R281 done — Missing/non-integer/out-of-range amount (1..1000000000) → 422 `validation_failed`.
+- R282 done — Σ refunds of a payment (including this one) > its current corrected amount → 422 `refund_exceeds_payment`.
+- R283 done — A refund is a new payment receiver → original sender, `refund_of` = target id, `request_id: null`,
   `authorization_id: null`, `settlement_id: null`, note and visibility copied from the target.
-- R284 todo — Success → 201 with that payment; replay with the same key → 200 with the original body.
-- R285 todo — Moves existing money from the receiver's available funds (balance − held), else 409
+- R284 done — Success → 201 with that payment; replay with the same key → 200 with the original body.
+- R285 done — Moves existing money from the receiver's available funds (balance − held), else 409
   `insufficient_funds`; atomic (no balance, payment or key change on failure).
-- R286 todo — Refunds never reopen a request or an authorization and never restore a released hold.
-- R287 todo — Every other payment has `refund_of: null` (feed, statements, settlements, captures, imports).
-- R288 todo — Refunding a settlement payment never changes settlement membership (the refund has no settlement_id;
+- R286 done — Refunds never reopen a request or an authorization and never restore a released hold.
+- R287 done — Every other payment has `refund_of: null` (feed, statements, settlements, captures, imports).
+- R288 done — Refunding a settlement payment never changes settlement membership (the refund has no settlement_id;
   the member keeps its own).
-- R289 todo — A refund is a payment like any other in history: revision 1 at created_at, statements, as_of, known_at,
+- R289 done — A refund is a payment like any other in history: revision 1 at created_at, statements, as_of, known_at,
   activity feed (visibility copied from the target).
 
 ## Stage 4 — Corrections with refunds
-- R290 todo — Single corrections remain available for ordinary direct and request payments (stage-3 rules).
-- R291 todo — Captures and refund payments cannot be corrected (single or batch): 422 `linked_payment_immutable`;
+- R290 done — Single corrections remain available for ordinary direct and request payments (stage-3 rules).
+- R291 done — Captures and refund payments cannot be corrected (single or batch): 422 `linked_payment_immutable`;
   settlement members cannot be corrected singly (stage-3 rule kept; batches only).
-- R292 todo — A correction cannot reduce a payment below its already-refunded amount: 422 `refund_exceeds_payment`.
-- R293 todo — Correction debits are checked against available funds (409 `insufficient_funds`).
+- R292 done — A correction cannot reduce a payment below its already-refunded amount: 422 `refund_exceeds_payment`.
+- R293 done — Correction debits are checked against available funds (409 `insufficient_funds`).
 
 ## Stage 4 — Correction batches
-- R294 todo — `POST /correction-batches` needs a token (401) and a settlement operator (403 `forbidden`, same rules
+- R294 done — `POST /correction-batches` needs a token (401) and a settlement operator (403 `forbidden`, same rules
   and order as settlements), and an Idempotency-Key.
-- R295 todo — `corrections`: 1..32 objects with distinct `payment_id`s, else 422 `validation_failed`.
-- R296 todo — Every item has the ordinary correction fields and validation (expected_revision, amount 0..1e9,
+- R295 done — `corrections`: 1..32 objects with distinct `payment_id`s, else 422 `validation_failed`.
+- R296 done — Every item has the ordinary correction fields and validation (expected_revision, amount 0..1e9,
   reason 1..200, effective_at RFC 3339 not later than now) → 422 `validation_failed`.
-- R297 todo — Unknown payment in an item → 404 `not_found`.
-- R298 todo — Stale expected revision in an item → 409 `stale_revision`.
-- R299 todo — The operator may correct any ordinary, request or settlement payment (not only their own); captures
+- R297 done — Unknown payment in an item → 404 `not_found`.
+- R298 done — Stale expected revision in an item → 409 `stale_revision`.
+- R299 done — The operator may correct any ordinary, request or settlement payment (not only their own); captures
   and refunds → 422 `linked_payment_immutable`; below refunded amount → 422 `refund_exceeds_payment`.
-- R300 todo — Including any settlement member requires every member of that settlement, else 422
+- R300 done — Including any settlement member requires every member of that settlement, else 422
   `incomplete_settlement`.
-- R301 todo — Members of one settlement must have identical effective instants (offset spellings may differ), else
+- R301 done — Members of one settlement must have identical effective instants (offset spellings may differ), else
   422 `validation_failed`.
-- R302 todo — Ordinary single-payment corrections remain available for nonmembers.
-- R303 todo — Unknown fields (top level and items) are ignored.
-- R304 todo — Error precedence: item errors in input order; settlement completeness; resulting current available
+- R302 done — Ordinary single-payment corrections remain available for nonmembers.
+- R303 done — Unknown fields (top level and items) are ignored.
+- R304 done — Error precedence: item errors in input order; settlement completeness; resulting current available
   funds (409 `insufficient_funds`); historical total and available at every effective/event boundary (409
   `historical_overdraft`).
-- R305 todo — Affordability uses the combined effect of all proposed revisions (per user net).
-- R306 todo — A rejected batch leaves history, balances and idempotency records unchanged.
-- R307 todo — 201 `{correction_batch_id, recorded_at, revisions}` with revisions in input order.
-- R308 todo — All new revisions share recorded_at, strictly later than every member's previous recorded_at; each
+- R305 done — Affordability uses the combined effect of all proposed revisions (per user net).
+- R306 done — A rejected batch leaves history, balances and idempotency records unchanged.
+- R307 done — 201 `{correction_batch_id, recorded_at, revisions}` with revisions in input order.
+- R308 done — All new revisions share recorded_at, strictly later than every member's previous recorded_at; each
   revision exposes `correction_batch_id`.
-- R309 todo — Original payments, receipts and original payment/settlement retries keep their original bodies.
-- R310 todo — New statements reflect the new revisions; earlier snapshot tokens page their frozen entries.
-- R311 todo — Replay → 200 with the original batch response.
-- R312 todo — Concurrent corrections (single or batch) sharing any expected payment revision cannot both succeed.
+- R309 done — Original payments, receipts and original payment/settlement retries keep their original bodies.
+- R310 done — New statements reflect the new revisions; earlier snapshot tokens page their frozen entries.
+- R311 done — Replay → 200 with the original batch response.
+- R312 done — Concurrent corrections (single or batch) sharing any expected payment revision cannot both succeed.
 
 ## Stage 4 — Import
-- R313 todo — Accepts this team's stage-1, stage-2 and stage-3 exports (and its own), retaining settlement membership,
+- R313 done — Accepts this team's stage-1, stage-2 and stage-3 exports (and its own), retaining settlement membership,
   corrections, snapshots, holds; refunds and batch ids survive a stage-4 round trip.
 
 ## Stage-2 review findings fixed in stage 3
@@ -484,6 +484,13 @@ Status: `todo`, `done`, `n/a` (with reason). One line per normative statement.
 - Lost outcomes on request pay, hold, split and capture show a neutral "couldn't confirm" notice (`*-uncertain`),
   not the refusal element; the retry reuses the same key and body.
 - Passwords hashed by this version use scrypt N=2^12 (r=8), stored with the hash; stage-1 imports keep N=2^14.
+
+## Stage 4 evidence map
+- `test_service.py` classes `Refunds` (R276–R289, concurrent refunds), `CorrectionsWithRefunds` (R290–R293),
+  `CorrectionBatches` (R294–R312: shape, replay, snapshots, known_at, every validation row, input-order precedence,
+  completeness, offset spellings, combined affordability, historical overdraft with atomic rejection and unclaimed
+  key, concurrent batches and single corrections on one revision), `Stage4Import` (R313: own round trip; a real
+  stage-3 export with corrections, settlement and snapshot); carried `Stage1Import`/`Stage3Import` cover stage-1/2.
 
 ## Stage 4 interpretation decisions
 - Refund check order: 404 → 403 → 422 `invalid_refund_target` → 422 `validation_failed` → 422

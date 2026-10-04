@@ -937,11 +937,7 @@ class Stage1Import(unittest.TestCase):
                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         try:
             base = "127.0.0.1:%d" % port
-            for _ in range(100):
-                try:
-                    http.client.HTTPConnection(base, timeout=1).request("GET", "/health"); break
-                except OSError:
-                    time.sleep(0.05)
+            wait_healthy(base)
 
             def c1(method, path, body=None, token=None, key=None, raw=None):
                 c = http.client.HTTPConnection(base, timeout=10)
@@ -1014,6 +1010,23 @@ class Html(Base):
                 s, body, ct = call_raw("GET", path, h)
                 self.assertEqual((s, ct), (200, "application/json; charset=utf-8"), (path, accept))
             self.err(call("GET", path), 401, "unauthenticated")
+
+
+def wait_healthy(hostport, limit=30.0):
+    """Wait until a helper server started by a test answers GET /health with 200."""
+    import time
+    deadline = time.time() + limit
+    while True:
+        try:
+            c = http.client.HTTPConnection(hostport, timeout=2)
+            c.request("GET", "/health")
+            if c.getresponse().status == 200:
+                return
+        except OSError:
+            pass
+        if time.time() > deadline:
+            raise RuntimeError("helper server did not become healthy: " + hostport)
+        time.sleep(0.05)
 
 
 def call_raw(method, path, headers):
@@ -1362,11 +1375,7 @@ class Stage3Import(Stage1Import):
         saved = HOST
         try:
             HOST = "127.0.0.1:%d" % port
-            for _ in range(100):
-                try:
-                    http.client.HTTPConnection(HOST, timeout=1).request("GET", "/health"); break
-                except OSError:
-                    time.sleep(0.05)
+            wait_healthy(HOST)
             reset()
             ada, bob = login("ada"), login("bob")
             h = call("POST", "/authorizations", {"to_handle": "bob", "amount": 2000}, ada, "a")[1]
@@ -1443,11 +1452,7 @@ class Stage2ImportHolds(unittest.TestCase):
         saved = HOST
         try:
             HOST = "127.0.0.1:%d" % port
-            for _ in range(100):
-                try:
-                    http.client.HTTPConnection(HOST, timeout=1).request("GET", "/health"); break
-                except OSError:
-                    time.sleep(0.05)
+            wait_healthy(HOST)
             reset(fx)
             out = actions() if actions else None
             return call("GET", "/_test/export")[1], out

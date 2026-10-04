@@ -6,159 +6,159 @@ M1/M2 are the stage-1 review findings fixed here.
 Status: `todo`, `done`, `n/a` (with reason). One line per normative statement.
 
 ## §1 Scope and invariants
-- R1 todo — Sum of all wallet balances always equals the total seeded by the last `POST /_test/reset` (all ops, concurrency, retries).
-- R2 todo — No wallet balance is ever negative, including transiently.
-- R3 todo — A payment request moves money at most once.
-- R4 todo — All amounts are exact integer minor units; money moves only between existing wallets (no deposit/withdraw endpoints).
+- R1 done — Sum of all wallet balances always equals the total seeded by the last `POST /_test/reset` (all ops, concurrency, retries).
+- R2 done — No wallet balance is ever negative, including transiently.
+- R3 done — A payment request moves money at most once.
+- R4 done — All amounts are exact integer minor units; money moves only between existing wallets (no deposit/withdraw endpoints).
 
 ## §2 Delivery and deployment
-- R5 todo — Deliver HTTP service, `Dockerfile`, `RUN.md` with a single build-and-start command, no manual setup.
-- R6 todo — Image runs alone with `-e PORT=<port>` and a port mapping; no outbound network at run time; seed/init inside the container.
-- R7 todo — Limits: 2 vCPU, 2 GiB memory, healthy within 60 s, 50 requests in flight, 5 s per request (10 s for test-control calls).
-- R8 todo — Runtime assets and dependencies are inside the image.
+- R5 done — Deliver HTTP service, `Dockerfile`, `RUN.md` with a single build-and-start command, no manual setup.
+- R6 done — Image runs alone with `-e PORT=<port>` and a port mapping; no outbound network at run time; seed/init inside the container.
+- R7 done — Limits: 2 vCPU, 2 GiB memory, healthy within 60 s, 50 requests in flight, 5 s per request (10 s for test-control calls).
+- R8 done — Runtime assets and dependencies are inside the image.
 - R9 n/a — State need not survive a restart (ephemeral disk; in-memory store chosen).
 
 ## §3 Runtime contract
-- R10 todo — Listen on `0.0.0.0:$PORT`, default 8080.
-- R11 todo — `GET /health` → 200 `{"status":"ok"}` once ready, within 60 s.
-- R12 todo — `POST /_test/reset` with fixture → 204; replaces all state; later requests see only the fixture; repeatable; no auth.
-- R13 todo — Requests/responses `application/json; charset=utf-8`.
-- R14 todo — Response timestamps RFC 3339 with explicit offset.
-- R15 todo — Unknown body fields ignored; unknown query parameters ignored.
-- R16 todo — IDs opaque strings, ≤ 64 characters.
+- R10 done — Listen on `0.0.0.0:$PORT`, default 8080.
+- R11 done — `GET /health` → 200 `{"status":"ok"}` once ready, within 60 s.
+- R12 done — `POST /_test/reset` with fixture → 204; replaces all state; later requests see only the fixture; repeatable; no auth.
+- R13 done — Requests/responses `application/json; charset=utf-8`.
+- R14 done — Response timestamps RFC 3339 with explicit offset.
+- R15 done — Unknown body fields ignored; unknown query parameters ignored.
+- R16 done — IDs opaque strings, ≤ 64 characters.
 
 ## §4 Model
-- R17 todo — One currency from the fixture; amounts are integer minor units; `minor_units` ∈ {0,2,3}.
-- R18 todo — Amounts: JSON `1000`, `1000.0`, `1e3` are the same valid integral value; booleans and strings are not numbers.
-- R19 todo — Handle unique, `^[a-z0-9_]{1,20}$`, never changes.
-- R20 todo — Signup handle derived from email local part: lowercase, chars outside `[a-z0-9_]` → `_`, truncate to 20.
-- R21 todo — New users start at balance 0 and can immediately receive and be asked for money.
-- R22 todo — Payment moves money immediately and atomically; sent directly or by paying a request.
-- R23 todo — Request status `pending` then exactly one of `paid`/`declined`/`cancelled`; only payer pays/declines; only requester cancels.
-- R24 todo — Request may exceed payer balance; paying while short is 409 `insufficient_funds`, changes nothing; later payable.
-- R25 todo — Visibility belongs to the payment, chosen by the payer; requests have no visibility and never appear in another's feed.
-- R26 todo — Feed: payment visible iff `public` or caller is sender/receiver; requests never in `/activity`; `/requests` only where caller is requester or payer.
-- R27 todo — A split is not a feed item; its requests are visible only to their two parties.
-- R28 todo — Visibility is one value seen identically by both parties and everyone else; `private` is not hidden from its receiver.
-- R29 todo — `amount` ≤ 1000000000 per request; no balance outside ±2^53; exact arithmetic (Python int, no floats in ledger).
-- R30 todo — Fixture format: currency, minor_units, users (id,email,password,display_name,handle,balance), payments, requests; `settlement_operator_ids` (default []).
-- R31 todo — Seeded users can log in immediately with the given password.
-- R32 todo — Fixture `balance` is post-payment; seeded payments are not replayed against balances.
-- R33 todo — Fixture balance < 0 → 422 `validation_failed` from reset, state unchanged.
+- R17 done — One currency from the fixture; amounts are integer minor units; `minor_units` ∈ {0,2,3}.
+- R18 done — Amounts: JSON `1000`, `1000.0`, `1e3` are the same valid integral value; booleans and strings are not numbers.
+- R19 done — Handle unique, `^[a-z0-9_]{1,20}$`, never changes.
+- R20 done — Signup handle derived from email local part: lowercase, chars outside `[a-z0-9_]` → `_`, truncate to 20.
+- R21 done — New users start at balance 0 and can immediately receive and be asked for money.
+- R22 done — Payment moves money immediately and atomically; sent directly or by paying a request.
+- R23 done — Request status `pending` then exactly one of `paid`/`declined`/`cancelled`; only payer pays/declines; only requester cancels.
+- R24 done — Request may exceed payer balance; paying while short is 409 `insufficient_funds`, changes nothing; later payable.
+- R25 done — Visibility belongs to the payment, chosen by the payer; requests have no visibility and never appear in another's feed.
+- R26 done — Feed: payment visible iff `public` or caller is sender/receiver; requests never in `/activity`; `/requests` only where caller is requester or payer.
+- R27 done — A split is not a feed item; its requests are visible only to their two parties.
+- R28 done — Visibility is one value seen identically by both parties and everyone else; `private` is not hidden from its receiver.
+- R29 done — `amount` ≤ 1000000000 per request; no balance outside ±2^53; exact arithmetic (Python int, no floats in ledger).
+- R30 done — Fixture format: currency, minor_units, users (id,email,password,display_name,handle,balance), payments, requests; `settlement_operator_ids` (default []).
+- R31 done — Seeded users can log in immediately with the given password.
+- R32 done — Fixture `balance` is post-payment; seeded payments are not replayed against balances.
+- R33 done — Fixture balance < 0 → 422 `validation_failed` from reset, state unchanged.
 
 ## §5 Errors
-- R34 todo — Every 4xx/5xx body is `{"error":{"code":...,"message":...}}`.
-- R35 todo — 400 `malformed_request`: unparseable body or field of wrong JSON type.
-- R36 todo — 400 `missing_idempotency_key`: header absent or empty.
-- R37 todo — 401 `unauthenticated`: missing/malformed/unknown bearer token.
-- R38 todo — 403 `forbidden`: authenticated but not permitted.
-- R39 todo — 404 `not_found`: no such resource or not visible to caller.
-- R40 todo — 409 `idempotency_key_reuse`: same key, same caller, different body.
-- R41 todo — 422 `validation_failed`: missing required field/query param, or rule violated with no more specific code; invalid format/out-of-range values incl. invalid dates, negative counts, over max/length.
-- R42 todo — Invalid `amount` (incl. strings, booleans), non-string `note` (incl. null), visibility not public/private → 422 `validation_failed`; omission selects defaults.
-- R43 todo — Integer query params must be plain decimal digits; `1e9`, `4.0`, `+4` → 422.
-- R44 todo — `Idempotency-Key` length 1..255, else 422 (empty → 400 per R36).
-- R45 todo — `limit` integer 1..200, else 422.
-- R46 todo — `offset` integer ≥ 0, else 422.
-- R47 todo — No 5xx, including under concurrent load.
+- R34 done — Every 4xx/5xx body is `{"error":{"code":...,"message":...}}`.
+- R35 done — 400 `malformed_request`: unparseable body or field of wrong JSON type.
+- R36 done — 400 `missing_idempotency_key`: header absent or empty.
+- R37 done — 401 `unauthenticated`: missing/malformed/unknown bearer token.
+- R38 done — 403 `forbidden`: authenticated but not permitted.
+- R39 done — 404 `not_found`: no such resource or not visible to caller.
+- R40 done — 409 `idempotency_key_reuse`: same key, same caller, different body.
+- R41 done — 422 `validation_failed`: missing required field/query param, or rule violated with no more specific code; invalid format/out-of-range values incl. invalid dates, negative counts, over max/length.
+- R42 done — Invalid `amount` (incl. strings, booleans), non-string `note` (incl. null), visibility not public/private → 422 `validation_failed`; omission selects defaults.
+- R43 done — Integer query params must be plain decimal digits; `1e9`, `4.0`, `+4` → 422.
+- R44 done — `Idempotency-Key` length 1..255, else 422 (empty → 400 per R36).
+- R45 done — `limit` integer 1..200, else 422.
+- R46 done — `offset` integer ≥ 0, else 422.
+- R47 done — No 5xx, including under concurrent load.
 
 ## §6 Authentication
-- R48 todo — `POST /auth/signup` {email,password,display_name} → 201 {user_id,display_name,token}.
-- R49 todo — `POST /auth/login` {email,password} → 200 {user_id,display_name,token}.
-- R50 todo — Email already registered → 409 `email_taken`.
-- R51 todo — Password < 8 chars → 422 `validation_failed`.
-- R52 todo — Email not `local@domain` → 422 `validation_failed`.
-- R53 todo — Wrong password or unknown email on login → 401 `unauthenticated`.
-- R54 todo — Derived handle already taken → 409 `handle_taken`, no account created.
-- R55 todo — All other endpoints except /health, /_test/*, signup, login require `Authorization: Bearer <token>`.
-- R56 todo — Tokens do not expire; multiple valid tokens per account.
-- R57 todo — Passwords stored with a password-hashing function (scrypt); never plaintext.
+- R48 done — `POST /auth/signup` {email,password,display_name} → 201 {user_id,display_name,token}.
+- R49 done — `POST /auth/login` {email,password} → 200 {user_id,display_name,token}.
+- R50 done — Email already registered → 409 `email_taken`.
+- R51 done — Password < 8 chars → 422 `validation_failed`.
+- R52 done — Email not `local@domain` → 422 `validation_failed`.
+- R53 done — Wrong password or unknown email on login → 401 `unauthenticated`.
+- R54 done — Derived handle already taken → 409 `handle_taken`, no account created.
+- R55 done — All other endpoints except /health, /_test/*, signup, login require `Authorization: Bearer <token>`.
+- R56 done — Tokens do not expire; multiple valid tokens per account.
+- R57 done — Passwords stored with a password-hashing function (scrypt); never plaintext.
 
 ## §7 Idempotency (POST /payments, /requests, /requests/{id}/pay, /splits, /settlements)
-- R58 todo — Key scoped per authenticated user; same string across users does not interact.
-- R59 todo — Replay = same user + method + path + body; same key/body on a different path is a new request.
-- R60 todo — First use → normal 201.
-- R61 todo — Replay → 200, body identical (as JSON value) to original.
-- R62 todo — Same key, different body → 409 `idempotency_key_reuse`.
-- R63 todo — Key whose original failed with 4xx is treated as first use.
-- R64 todo — Same body = same JSON value after parsing (key order/whitespace irrelevant).
-- R65 todo — Concurrent identical requests on an unused key: exactly one 201, others 200 same body, effect once.
-- R66 todo — Replay returns original response even after resource changed/cancelled; no further state change.
-- R67 todo — After body parses as object and caller is authenticated, a claimed key is resolved before field validation and resource checks.
+- R58 done — Key scoped per authenticated user; same string across users does not interact.
+- R59 done — Replay = same user + method + path + body; same key/body on a different path is a new request.
+- R60 done — First use → normal 201.
+- R61 done — Replay → 200, body identical (as JSON value) to original.
+- R62 done — Same key, different body → 409 `idempotency_key_reuse`.
+- R63 done — Key whose original failed with 4xx is treated as first use.
+- R64 done — Same body = same JSON value after parsing (key order/whitespace irrelevant).
+- R65 done — Concurrent identical requests on an unused key: exactly one 201, others 200 same body, effect once.
+- R66 done — Replay returns original response even after resource changed/cancelled; no further state change.
+- R67 done — After body parses as object and caller is authenticated, a claimed key is resolved before field validation and resource checks.
 
 ## §8 API
-- R68 todo — `GET /me` → {user_id,display_name,handle,balance,currency,minor_units}.
-- R69 todo — `POST /payments` {to_handle,amount,note?="",visibility?="public"} → 201 payment body (payment_id, from/to ids+handles, amount, currency, note, visibility, request_id:null, created_at; settlement_id:null per §11).
-- R70 todo — Payments: balance < amount → 409 `insufficient_funds`.
-- R71 todo — Payments: amount < 1, > 1000000000 or non-integer → 422.
-- R72 todo — Payments: to own handle → 422 `self_payment`.
-- R73 todo — Payments: note > 200 chars → 422.
-- R74 todo — Payments: bad visibility → 422.
-- R75 todo — Payments: unknown handle → 404 `not_found`.
-- R76 todo — Debit and credit one atomic step; failed payment leaves no trace.
-- R77 todo — `note` stored/returned verbatim; Unicode/emoji round-trip byte for byte.
-- R78 todo — `POST /requests` {payer_handle,amount,note?} → 201 request body (request_id, requester/payer ids+handles, amount, currency, note, status pending, payment_id null, created_at).
-- R79 todo — Requests: amount out of range/non-integer → 422.
-- R80 todo — Requests: own handle → 422 `self_request`.
-- R81 todo — Requests: note > 200 → 422.
-- R82 todo — Requests: unknown handle → 404.
-- R83 todo — Requests: payer balance not checked at creation.
-- R84 todo — `POST /requests/{id}/pay` {visibility?="public"} → 201 payment with request_id; request becomes paid with payment_id.
-- R85 todo — Pay: `{}` vs `{"visibility":"public"}` are different bodies for idempotency.
-- R86 todo — Pay: not pending → 409 `request_not_pending`.
-- R87 todo — Pay: payer balance < amount → 409 `insufficient_funds`.
-- R88 todo — Pay: caller not payer → 403 `forbidden`.
-- R89 todo — Pay: unknown request → 404.
-- R90 todo — Pay replay → 200 original payment body even when request already paid; no money moved; never 409 request_not_pending.
-- R91 todo — `POST /requests/{id}/decline`: payer only, no key; 200 request with declined; repeat decline 200; paid/cancelled → 409 `request_not_pending`; non-payer 403.
-- R92 todo — `POST /requests/{id}/cancel`: requester only, no key; 200 cancelled; repeat 200; paid/declined → 409; non-requester 403.
-- R93 todo — `GET /requests`: only caller's requests, newest first by created_at.
-- R94 todo — `direction` incoming/outgoing/absent; `status` one of four or absent; unknown values → 422.
-- R95 todo — `limit` default 50 (1..200), `offset` default 0 (≥0); `has_more` true iff items beyond the last returned; body `{"requests":[...],"has_more":bool}`.
-- R96 todo — `POST /splits` {amount,participant_handles,note?} → 201 {split_id,amount,currency,note,shares,requests,created_at}.
-- R97 todo — Splits: caller may or may not be in participants; one pending request per non-caller participant, caller as requester.
-- R98 todo — Splits: `shares` covers every participant incl. caller in given order, sums to amount; `requests` same order, excluding caller.
-- R99 todo — Splits: amount out of range/non-integer → 422.
-- R100 todo — Splits: participant_handles empty or duplicate → 422.
-- R101 todo — Splits: note > 200 → 422.
-- R102 todo — Splits: any unknown handle → 404.
-- R103 todo — Splits: caller-only split valid, one share, `requests: []`; no balance checks.
-- R104 todo — `GET /activity?limit&offset` → `{"payments":[...],"has_more":bool}`, feed-contract visible payments, newest first; same limit/offset rules.
+- R68 done — `GET /me` → {user_id,display_name,handle,balance,currency,minor_units}.
+- R69 done — `POST /payments` {to_handle,amount,note?="",visibility?="public"} → 201 payment body (payment_id, from/to ids+handles, amount, currency, note, visibility, request_id:null, created_at; settlement_id:null per §11).
+- R70 done — Payments: balance < amount → 409 `insufficient_funds`.
+- R71 done — Payments: amount < 1, > 1000000000 or non-integer → 422.
+- R72 done — Payments: to own handle → 422 `self_payment`.
+- R73 done — Payments: note > 200 chars → 422.
+- R74 done — Payments: bad visibility → 422.
+- R75 done — Payments: unknown handle → 404 `not_found`.
+- R76 done — Debit and credit one atomic step; failed payment leaves no trace.
+- R77 done — `note` stored/returned verbatim; Unicode/emoji round-trip byte for byte.
+- R78 done — `POST /requests` {payer_handle,amount,note?} → 201 request body (request_id, requester/payer ids+handles, amount, currency, note, status pending, payment_id null, created_at).
+- R79 done — Requests: amount out of range/non-integer → 422.
+- R80 done — Requests: own handle → 422 `self_request`.
+- R81 done — Requests: note > 200 → 422.
+- R82 done — Requests: unknown handle → 404.
+- R83 done — Requests: payer balance not checked at creation.
+- R84 done — `POST /requests/{id}/pay` {visibility?="public"} → 201 payment with request_id; request becomes paid with payment_id.
+- R85 done — Pay: `{}` vs `{"visibility":"public"}` are different bodies for idempotency.
+- R86 done — Pay: not pending → 409 `request_not_pending`.
+- R87 done — Pay: payer balance < amount → 409 `insufficient_funds`.
+- R88 done — Pay: caller not payer → 403 `forbidden`.
+- R89 done — Pay: unknown request → 404.
+- R90 done — Pay replay → 200 original payment body even when request already paid; no money moved; never 409 request_not_pending.
+- R91 done — `POST /requests/{id}/decline`: payer only, no key; 200 request with declined; repeat decline 200; paid/cancelled → 409 `request_not_pending`; non-payer 403.
+- R92 done — `POST /requests/{id}/cancel`: requester only, no key; 200 cancelled; repeat 200; paid/declined → 409; non-requester 403.
+- R93 done — `GET /requests`: only caller's requests, newest first by created_at.
+- R94 done — `direction` incoming/outgoing/absent; `status` one of four or absent; unknown values → 422.
+- R95 done — `limit` default 50 (1..200), `offset` default 0 (≥0); `has_more` true iff items beyond the last returned; body `{"requests":[...],"has_more":bool}`.
+- R96 done — `POST /splits` {amount,participant_handles,note?} → 201 {split_id,amount,currency,note,shares,requests,created_at}.
+- R97 done — Splits: caller may or may not be in participants; one pending request per non-caller participant, caller as requester.
+- R98 done — Splits: `shares` covers every participant incl. caller in given order, sums to amount; `requests` same order, excluding caller.
+- R99 done — Splits: amount out of range/non-integer → 422.
+- R100 done — Splits: participant_handles empty or duplicate → 422.
+- R101 done — Splits: note > 200 → 422.
+- R102 done — Splits: any unknown handle → 404.
+- R103 done — Splits: caller-only split valid, one share, `requests: []`; no balance checks.
+- R104 done — `GET /activity?limit&offset` → `{"payments":[...],"has_more":bool}`, feed-contract visible payments, newest first; same limit/offset rules.
 
 ## §9 Money and rounding
-- R105 todo — Shares whole minor units, sum exactly to amount, differ by ≤ 1; larger shares to first participants in given order.
-- R106 todo — Table rows: 1000/3 → 334,333,333; 1/3 → 1,0,0; 10/3 → 4,3,3; 999/3 → 333,333,333; 5/5 → 1×5.
-- R107 todo — Zero share is legal and still creates a request (amount 0).
-- R108 todo — Each split independent of previous ones; balances still sum to seeded total after paying splits.
+- R105 done — Shares whole minor units, sum exactly to amount, differ by ≤ 1; larger shares to first participants in given order.
+- R106 done — Table rows: 1000/3 → 334,333,333; 1/3 → 1,0,0; 10/3 → 4,3,3; 999/3 → 333,333,333; 5/5 → 1×5.
+- R107 done — Zero share is legal and still creates a request (amount 0).
+- R108 done — Each split independent of previous ones; balances still sum to seeded total after paying splits.
 
 ## §10 Export and import
-- R109 todo — `GET /_test/export` (no auth) → 200 {track:"pocketful",format_version:1,state:{...}}.
-- R110 todo — `POST /_test/import` (no auth) takes the whole export object, atomically replaces state, 204; accepts an unchanged export.
-- R111 todo — Import is replacement, not merge; repeat import restores without duplication; no dependency on source process/files/address.
-- R112 todo — Import: invalid JSON → §5 (400 malformed_request); missing fields, wrong track/version, invalid state → 422 validation_failed, destination unchanged.
-- R113 todo — Export is an atomic read-only snapshot; later writes don't change it.
-- R114 todo — Import preserves accounts, password hashes, tokens, currency, balances, payments, requests, permissions, idempotency records with original responses; nothing regenerated/replayed; failed keys stay reusable.
-- R115 todo — Import removes all previous destination data and credentials; reset clears imported state.
+- R109 done — `GET /_test/export` (no auth) → 200 {track:"pocketful",format_version:1,state:{...}}.
+- R110 done — `POST /_test/import` (no auth) takes the whole export object, atomically replaces state, 204; accepts an unchanged export.
+- R111 done — Import is replacement, not merge; repeat import restores without duplication; no dependency on source process/files/address.
+- R112 done — Import: invalid JSON → §5 (400 malformed_request); missing fields, wrong track/version, invalid state → 422 validation_failed, destination unchanged.
+- R113 done — Export is an atomic read-only snapshot; later writes don't change it.
+- R114 done — Import preserves accounts, password hashes, tokens, currency, balances, payments, requests, permissions, idempotency records with original responses; nothing regenerated/replayed; failed keys stay reusable.
+- R115 done — Import removes all previous destination data and credentials; reset clears imported state.
 
 ## §11 Atomic net settlements
-- R116 todo — Fixture `settlement_operator_ids` (default []); operators may settle across any wallets but gain no access to others' requests or private activity.
-- R117 todo — `POST /settlements` needs idempotency key; no token → 401; non-operator → 403 `forbidden`.
-- R118 todo — Body `{"transfers":[{from_handle,to_handle,amount,note?,visibility?}]}`, 1..32 entries; malformed batch shape → 422 `validation_failed`; unknown fields ignored.
-- R119 todo — Each entry: payment amount/note/visibility rules; unknown handle → 404; self transfer → 422 `self_payment`; entry errors in input order, before insufficient funds.
-- R120 todo — Affordable iff every wallet's net post-settlement balance ≥ 0; else 409 `insufficient_funds`.
-- R121 todo — All-or-nothing commit; failed validation claims no key and creates no payment.
-- R122 todo — 201 {settlement_id, committed_at, payments (input order)}; members are ordinary payments with settlement_id, request_id null, created_at = committed_at; non-members have settlement_id null.
-- R123 todo — Members follow normal feed visibility; replay → 200 with original complete response.
-- R124 todo — Reset/import preserve operator permissions, payments, requests, settlement membership, retry responses.
+- R116 done — Fixture `settlement_operator_ids` (default []); operators may settle across any wallets but gain no access to others' requests or private activity.
+- R117 done — `POST /settlements` needs idempotency key; no token → 401; non-operator → 403 `forbidden`.
+- R118 done — Body `{"transfers":[{from_handle,to_handle,amount,note?,visibility?}]}`, 1..32 entries; malformed batch shape → 422 `validation_failed`; unknown fields ignored.
+- R119 done — Each entry: payment amount/note/visibility rules; unknown handle → 404; self transfer → 422 `self_payment`; entry errors in input order, before insufficient funds.
+- R120 done — Affordable iff every wallet's net post-settlement balance ≥ 0; else 409 `insufficient_funds`.
+- R121 done — All-or-nothing commit; failed validation claims no key and creates no payment.
+- R122 done — 201 {settlement_id, committed_at, payments (input order)}; members are ordinary payments with settlement_id, request_id null, created_at = committed_at; non-members have settlement_id null.
+- R123 done — Members follow normal feed visibility; replay → 200 with original complete response.
+- R124 done — Reset/import preserve operator permissions, payments, requests, settlement membership, retry responses.
 
 ## Added on coordinator review (msg ae47dd3f)
-- R125 todo — Seeded payments/requests (ids, notes, visibility, statuses incl. paid/declined/cancelled with payment_id) readable via /activity and /requests under normal rules; not replayed against balances. Test: `Reset.test_seeded_state_readable`.
-- R126 todo — Malformed fixture (wrong types, bad minor_units, duplicate handle/email/id, bad handle, unknown user ids in payments/requests/operators) → 4xx (400 wrong type, 422 otherwise), state unchanged. Test: `Reset.test_malformed_fixtures`.
-- R127 todo — Seeded users get working tokens via login; handles immutable (no endpoint changes them).
-- R128 todo — Failed (4xx) idempotent request does not claim the key, including under concurrency. Tests: `Idempotency.test_failed_key_reusable`, `test_concurrent_failures_do_not_claim`, `Settlements.test_errors`.
-- R129 todo — Idempotency-Key > 255 → 422 only after auth (no token → 401); absent/empty → 400. Test: `Idempotency.test_header_rules`.
-- R130 todo — Same-second payments ordered by (timestamp, sequence), strictly increasing clock, so pages have no duplicates/gaps without concurrent writes. Test: `Feed.test_paging_same_second_consistent`.
-- R131 todo — Critical sections are short in-memory work; scrypt (N=2^14, r=8) runs outside the lock, at most 4 at a time; 50 concurrent logins < 5 s. Test: `Auth.test_concurrent_logins_fast`.
+- R125 done — Seeded payments/requests (ids, notes, visibility, statuses incl. paid/declined/cancelled with payment_id) readable via /activity and /requests under normal rules; not replayed against balances. Test: `Reset.test_seeded_state_readable`.
+- R126 done — Malformed fixture (wrong types, bad minor_units, duplicate handle/email/id, bad handle, unknown user ids in payments/requests/operators) → 4xx (400 wrong type, 422 otherwise), state unchanged. Test: `Reset.test_malformed_fixtures`.
+- R127 done — Seeded users get working tokens via login; handles immutable (no endpoint changes them).
+- R128 done — Failed (4xx) idempotent request does not claim the key, including under concurrency. Tests: `Idempotency.test_failed_key_reusable`, `test_concurrent_failures_do_not_claim`, `Settlements.test_errors`.
+- R129 done — Idempotency-Key > 255 → 422 only after auth (no token → 401); absent/empty → 400. Test: `Idempotency.test_header_rules`.
+- R130 done — Same-second payments ordered by (timestamp, sequence), strictly increasing clock, so pages have no duplicates/gaps without concurrent writes. Test: `Feed.test_paging_same_second_consistent`.
+- R131 done — Critical sections are short in-memory work; scrypt (N=2^14, r=8) runs outside the lock, at most 4 at a time; 50 concurrent logins < 5 s. Test: `Auth.test_concurrent_logins_fast`.
 
 ## Interpretation decisions
 - Non-payer third party calling pay/decline gets 403 `forbidden` (table: "caller is not the request's payer"); same for non-requester cancel.
@@ -172,129 +172,149 @@ Status: `todo`, `done`, `n/a` (with reason). One line per normative statement.
 
 
 ## Stage 2 — UI routes and auth screens
-- R132 todo — GET `/`, `/requests`, `/split`, `/signup`, `/login`, `/authorizations` reachable by URL (HTML).
-- R133 todo — `/requests` and `/authorizations`: HTML for `Accept: text/html`, JSON otherwise.
-- R134 todo — Other screens reachable through the UI; consistent navigation across routes.
-- R135 todo — Signup testids: `signup-email`, `signup-password`, `signup-display-name`, `signup-submit`.
-- R136 todo — Login testids: `login-email`, `login-password`, `login-submit`.
-- R137 todo — `auth-error` present only when there is an error.
-- R138 todo — `current-user` visible on every screen when signed in, text contains display name.
-- R139 todo — `current-handle` text exactly the handle (no `@`, no words).
-- R140 todo — `logout-button` signs out (current-user disappears).
+- R132 done — GET `/`, `/requests`, `/split`, `/signup`, `/login`, `/authorizations` reachable by URL (HTML).
+- R133 done — `/requests` and `/authorizations`: HTML for `Accept: text/html`, JSON otherwise.
+- R134 done — Other screens reachable through the UI; consistent navigation across routes.
+- R135 done — Signup testids: `signup-email`, `signup-password`, `signup-display-name`, `signup-submit`.
+- R136 done — Login testids: `login-email`, `login-password`, `login-submit`.
+- R137 done — `auth-error` present only when there is an error.
+- R138 done — `current-user` visible on every screen when signed in, text contains display name.
+- R139 done — `current-handle` text exactly the handle (no `@`, no words).
+- R140 done — `logout-button` signs out (current-user disappears).
 
 ## Stage 2 — Balance, pay and request forms (`/`)
-- R141 todo — `wallet-balance` text exactly formatted total, `data-amount` = minor units.
-- R142 todo — Formatted amount: exactly `minor_units` decimals, one space, currency code; `minor_units: 0` → no decimal point; no sign.
-- R143 todo — `pay-handle`, `pay-amount` (decimal string), `pay-note`, `pay-visibility` (option values `public`/`private`), `pay-submit`.
-- R144 todo — `pay-error` shown when the payment is refused, incl. insufficient funds.
-- R145 todo — Request form: `request-handle`, `request-amount`, `request-note`, `request-submit`; `request-error` when refused.
-- R146 todo — Decimal parsing: `15.00`/`15` → 1500, `15.5` → 1550 (mu 2); nonnumeric or > `minor_units` places → form error, nothing sent (`15.005` rejected, not rounded).
-- R147 todo — Pay form keeps its values after success.
-- R148 todo — Resubmitting unchanged pay form does not pay again (same key + same body → replay): balance falls once, one payment in the feed, no `pay-error`.
-- R149 todo — Changing any field makes the next submission a new payment (new key).
-- R150 todo — Form retries follow §7.
+- R141 done — `wallet-balance` text exactly formatted total, `data-amount` = minor units.
+- R142 done — Formatted amount: exactly `minor_units` decimals, one space, currency code; `minor_units: 0` → no decimal point; no sign.
+- R143 done — `pay-handle`, `pay-amount` (decimal string), `pay-note`, `pay-visibility` (option values `public`/`private`), `pay-submit`.
+- R144 done — `pay-error` shown when the payment is refused, incl. insufficient funds.
+- R145 done — Request form: `request-handle`, `request-amount`, `request-note`, `request-submit`; `request-error` when refused.
+- R146 done — Decimal parsing: `15.00`/`15` → 1500, `15.5` → 1550 (mu 2); nonnumeric or > `minor_units` places → form error, nothing sent (`15.005` rejected, not rounded).
+- R147 done — Pay form keeps its values after success.
+- R148 done — Resubmitting unchanged pay form does not pay again (same key + same body → replay): balance falls once, one payment in the feed, no `pay-error`.
+- R149 done — Changing any field makes the next submission a new payment (new key).
+- R150 done — Form retries follow §7.
 
 ## Stage 2 — Activity feed (`/`)
-- R151 todo — `activity-list` children newest first in DOM.
-- R152 todo — `activity-item-{payment_id}` per visible payment with `data-visibility`.
-- R153 todo — `activity-parties-{id}` contains both handles.
-- R154 todo — `activity-amount-{id}` exactly formatted amount.
-- R155 todo — `activity-note-{id}` exactly the note, present even when empty.
-- R156 todo — `empty-activity` shown instead of the list when nothing is visible.
+- R151 done — `activity-list` children newest first in DOM.
+- R152 done — `activity-item-{payment_id}` per visible payment with `data-visibility`.
+- R153 done — `activity-parties-{id}` contains both handles.
+- R154 done — `activity-amount-{id}` exactly formatted amount.
+- R155 done — `activity-note-{id}` exactly the note, present even when empty.
+- R156 done — `empty-activity` shown instead of the list when nothing is visible.
 
 ## Stage 2 — Requests screen (`/requests`)
-- R157 todo — `incoming-list`, `outgoing-list` containers.
-- R158 todo — `request-item-{id}` with `data-status`; `request-amount-{id}` exactly formatted.
-- R159 todo — `request-pay-{id}`, `request-decline-{id}` only on pending incoming; `request-cancel-{id}` only on pending outgoing.
-- R160 todo — `request-error` when pay/decline/cancel refused; `empty-requests` when both lists empty.
+- R157 done — `incoming-list`, `outgoing-list` containers.
+- R158 done — `request-item-{id}` with `data-status`; `request-amount-{id}` exactly formatted.
+- R159 done — `request-pay-{id}`, `request-decline-{id}` only on pending incoming; `request-cancel-{id}` only on pending outgoing.
+- R160 done — `request-error` when pay/decline/cancel refused; `empty-requests` when both lists empty.
 
 ## Stage 2 — Split screen (`/split`)
-- R161 todo — `split-amount` (decimal, pay-amount rule), `split-handles` (comma-separated, in order), `split-note`, `split-submit`.
-- R162 todo — `split-preview` before submit with one `split-share-{handle}` per participant, exactly formatted; identical to server §9 shares.
-- R163 todo — `split-error` when the split is refused.
+- R161 done — `split-amount` (decimal, pay-amount rule), `split-handles` (comma-separated, in order), `split-note`, `split-submit`.
+- R162 done — `split-preview` before submit with one `split-share-{handle}` per participant, exactly formatted; identical to server §9 shares.
+- R163 done — `split-error` when the split is refused.
 
 ## Stage 2 — Refresh, competing clients, uncertain outcomes
-- R164 todo — After any successful action, balance, feed and request lists on the same page show new state without manual reload; refresh only after the write succeeds.
-- R165 todo — `wallet-refresh` on `/` refreshes balance and feed without clearing the pay form.
-- R166 todo — Latest refresh wins: a delayed earlier read never overwrites a later one, even out of order (also for available/held).
-- R167 todo — Refused payment: `pay-error`, refresh balance/feed, preserve all pay inputs.
-- R168 todo — Request cancelled elsewhere: pay refused → `request-error` and request list refreshed (stale pay button gone).
-- R169 todo — Lost payment response (incl. after commit): `pay-uncertain` with non-empty text, not `pay-error`; form stays retryable with same key and body.
-- R170 todo — Successful retry removes error/uncertain elements, refreshes balance and feed, money moves exactly once.
+- R164 done — After any successful action, balance, feed and request lists on the same page show new state without manual reload; refresh only after the write succeeds.
+- R165 done — `wallet-refresh` on `/` refreshes balance and feed without clearing the pay form.
+- R166 done — Latest refresh wins: a delayed earlier read never overwrites a later one, even out of order (also for available/held).
+- R167 done — Refused payment: `pay-error`, refresh balance/feed, preserve all pay inputs.
+- R168 done — Request cancelled elsewhere: pay refused → `request-error` and request list refreshed (stale pay button gone).
+- R169 done — Lost payment response (incl. after commit): `pay-uncertain` with non-empty text, not `pay-error`; form stays retryable with same key and body.
+- R170 done — Successful retry removes error/uncertain elements, refreshes balance and feed, money moves exactly once.
 - R171 n/a — No background polling, live sync or recovery across page reloads required.
 
 ## Stage 2 — Upgrade from stage 1
-- R172 todo — Stage-2 import accepts this team's stage-1 export.
-- R173 todo — Browser signed in before export/import stays signed in afterwards (tokens preserved).
-- R174 todo — Imported pending requests stay payable through the request screen.
-- R175 todo — Payment lost before export is retryable after import with same key/body; UI recovers the original payment and refreshes imported balance; form and pending retry identity survive (no reload).
+- R172 done — Stage-2 import accepts this team's stage-1 export.
+- R173 done — Browser signed in before export/import stays signed in afterwards (tokens preserved).
+- R174 done — Imported pending requests stay payable through the request screen.
+- R175 done — Payment lost before export is retryable after import with same key/body; UI recovers the original payment and refreshes imported balance; form and pending retry identity survive (no reload).
 
 ## Stage 2 — Authorizations model and invariants
-- R176 todo — Sum of wallet `total` always equals the seeded total; holds move no money.
-- R177 todo — `available = total − held` never negative; held funds cannot fund payments, authorizations or settlement net debits; captures may spend their own reservation.
-- R178 todo — Cumulative captures ≤ authorized amount; each idempotent capture moves money once; closed hold cannot be captured again.
-- R179 todo — `GET /me` keeps `balance` (= `total`), adds `total`, `available`, `held`; with no holds all agree, held 0.
-- R180 todo — `POST /payments` stays an immediate transfer (no hold, no capture).
-- R181 todo — Every 409 `insufficient_funds` (payments, request pay, settlements) evaluated against `available`.
-- R182 todo — Request pay stays immediate; splits unchanged.
-- R183 todo — Seven idempotent write paths (stage-1 five + `POST /authorizations` + `POST /authorizations/{id}/capture`), §7 rules independently.
-- R184 todo — Fixture `authorization_ttl_seconds` (default 600; positive integer else reset 422/400) applies to API-created authorizations.
-- R185 todo — Fixture `authorizations` array (default empty): id, from/to user ids, amount, note, visibility, status (`open`/`captured`/`voided`/`expired`), absolute `expires_at`.
-- R186 todo — Seeded `balance` is `total`; `available` derived by subtracting seeded open, unexpired holds.
-- R187 todo — Sum of a user's seeded unexpired open holds > balance → reset 422 `validation_failed`, state unchanged.
-- R188 todo — Only `open` holds anything; `expires_at` at or before now → `expired`, holds nothing; reflected lazily on every read and write (`GET /authorizations` shows expired, `GET /me` releases remainder).
+- R176 done — Sum of wallet `total` always equals the seeded total; holds move no money.
+- R177 done — `available = total − held` never negative; held funds cannot fund payments, authorizations or settlement net debits; captures may spend their own reservation.
+- R178 done — Cumulative captures ≤ authorized amount; each idempotent capture moves money once; closed hold cannot be captured again.
+- R179 done — `GET /me` keeps `balance` (= `total`), adds `total`, `available`, `held`; with no holds all agree, held 0.
+- R180 done — `POST /payments` stays an immediate transfer (no hold, no capture).
+- R181 done — Every 409 `insufficient_funds` (payments, request pay, settlements) evaluated against `available`.
+- R182 done — Request pay stays immediate; splits unchanged.
+- R183 done — Seven idempotent write paths (stage-1 five + `POST /authorizations` + `POST /authorizations/{id}/capture`), §7 rules independently.
+- R184 done — Fixture `authorization_ttl_seconds` (default 600; positive integer else reset 422/400) applies to API-created authorizations.
+- R185 done — Fixture `authorizations` array (default empty): id, from/to user ids, amount, note, visibility, status (`open`/`captured`/`voided`/`expired`), absolute `expires_at`.
+- R186 done — Seeded `balance` is `total`; `available` derived by subtracting seeded open, unexpired holds.
+- R187 done — Sum of a user's seeded unexpired open holds > balance → reset 422 `validation_failed`, state unchanged.
+- R188 done — Only `open` holds anything; `expires_at` at or before now → `expired`, holds nothing; reflected lazily on every read and write (`GET /authorizations` shows expired, `GET /me` releases remainder).
 
 ## Stage 2 — Authorizations API
-- R189 todo — `POST /authorizations` {to_handle, amount, note?, visibility?} → 201 authorization body (authorization_id, from/to ids+handles, amount, captured_amount 0, remaining_amount, currency, note, visibility, status open, expires_at = created_at + ttl, payment_id null, payment_ids [], created_at).
-- R190 todo — Authorize errors: available < amount 409 `insufficient_funds`; amount range/integer 422; self 422 `self_payment`; note > 200 or bad visibility 422; unknown handle 404.
-- R191 todo — Open authorization is not a feed item.
-- R192 todo — `POST /authorizations/{id}/capture` {amount?, final?}: receiver only; amount defaults to remaining; `{}` vs `{"amount":N}` are different bodies for replay.
-- R193 todo — Capture → 201 payment (payment shape, `authorization_id` set, `request_id` null, amount captured, note/visibility copied, in feed by normal rule); other payments carry `authorization_id: null`.
-- R194 todo — Default final capture: status `captured`, `captured_amount`, `payment_id`, remainder released in the same step; second capture → 409 `authorization_not_open`.
-- R195 todo — `final: false` (boolean, default true): remainder stays held, status open; further captures up to remainder; capturing the entire remainder closes it.
-- R196 todo — `capture_exceeds_authorization` (422) compares with remaining; `captured_amount` cumulative; `payment_id` latest; `payment_ids` all captures in order; `remaining_amount` held now, 0 when closed.
-- R197 todo — Void/expiry close partially captured authorizations, release only the remainder, keep capture records.
-- R198 todo — New fields do not change idempotency body equality.
-- R199 todo — Capture errors: not open 409 `authorization_not_open`; expired 409 `authorization_expired`; amount > remaining 422 `capture_exceeds_authorization`; amount < 1 / non-integer 422; non-receiver 403; unknown 404.
-- R200 todo — `POST /authorizations/{id}/void`: payer only, no key; 200 voided, hold released; void of voided → 200; captured/expired → 409 `authorization_not_open`.
-- R201 todo — Capture/void by a non-permitted caller (incl. third parties) → 403.
-- R202 todo — `GET /authorizations` direction (outgoing payer / incoming receiver), status (expired-by-clock matches `expired`, never `open`), limit/offset/has_more as `/requests`; only caller's; newest first.
+- R189 done — `POST /authorizations` {to_handle, amount, note?, visibility?} → 201 authorization body (authorization_id, from/to ids+handles, amount, captured_amount 0, remaining_amount, currency, note, visibility, status open, expires_at = created_at + ttl, payment_id null, payment_ids [], created_at).
+- R190 done — Authorize errors: available < amount 409 `insufficient_funds`; amount range/integer 422; self 422 `self_payment`; note > 200 or bad visibility 422; unknown handle 404.
+- R191 done — Open authorization is not a feed item.
+- R192 done — `POST /authorizations/{id}/capture` {amount?, final?}: receiver only; amount defaults to remaining; `{}` vs `{"amount":N}` are different bodies for replay.
+- R193 done — Capture → 201 payment (payment shape, `authorization_id` set, `request_id` null, amount captured, note/visibility copied, in feed by normal rule); other payments carry `authorization_id: null`.
+- R194 done — Default final capture: status `captured`, `captured_amount`, `payment_id`, remainder released in the same step; second capture → 409 `authorization_not_open`.
+- R195 done — `final: false` (boolean, default true): remainder stays held, status open; further captures up to remainder; capturing the entire remainder closes it.
+- R196 done — `capture_exceeds_authorization` (422) compares with remaining; `captured_amount` cumulative; `payment_id` latest; `payment_ids` all captures in order; `remaining_amount` held now, 0 when closed.
+- R197 done — Void/expiry close partially captured authorizations, release only the remainder, keep capture records.
+- R198 done — New fields do not change idempotency body equality.
+- R199 done — Capture errors: not open 409 `authorization_not_open`; expired 409 `authorization_expired`; amount > remaining 422 `capture_exceeds_authorization`; amount < 1 / non-integer 422; non-receiver 403; unknown 404.
+- R200 done — `POST /authorizations/{id}/void`: payer only, no key; 200 voided, hold released; void of voided → 200; captured/expired → 409 `authorization_not_open`.
+- R201 done — Capture/void by a non-permitted caller (incl. third parties) → 403.
+- R202 done — `GET /authorizations` direction (outgoing payer / incoming receiver), status (expired-by-clock matches `expired`, never `open`), limit/offset/has_more as `/requests`; only caller's; newest first.
 
 ## Stage 2 — Authorizations UI
-- R203 todo — Route `/authorizations` (HTML for text/html, else JSON).
-- R204 todo — `wallet-balance` = formatted total (unchanged); `wallet-available` formatted available with `data-amount`, the headline number; `wallet-held` with `data-amount`, absent when held is zero.
-- R205 todo — Authorize form: `authorize-handle`, `authorize-amount`, `authorize-note`, `authorize-visibility`, `authorize-submit` (pay-form input rules); `authorize-error` when refused.
-- R206 todo — `authorization-list` children newest first; `authorization-item-{id}` with `data-status`; `authorization-amount-{id}` exact formatted.
-- R207 todo — `authorization-captured-{id}` only when status `captured`; `authorization-expires-{id}` text is RFC 3339 `expires_at`.
-- R208 todo — `authorization-capture-amount-{id}` (prefilled remaining) and `authorization-capture-{id}` only on incoming open; `authorization-void-{id}` only on outgoing open.
-- R209 todo — `authorization-error` when capture/void refused; `empty-authorizations` when the list is empty.
-- R210 todo — UI reflects seeded and new holds; available shown as spending balance immediately after reset with open holds.
+- R203 done — Route `/authorizations` (HTML for text/html, else JSON).
+- R204 done — `wallet-balance` = formatted total (unchanged); `wallet-available` formatted available with `data-amount`, the headline number; `wallet-held` with `data-amount`, absent when held is zero.
+- R205 done — Authorize form: `authorize-handle`, `authorize-amount`, `authorize-note`, `authorize-visibility`, `authorize-submit` (pay-form input rules); `authorize-error` when refused.
+- R206 done — `authorization-list` children newest first; `authorization-item-{id}` with `data-status`; `authorization-amount-{id}` exact formatted.
+- R207 done — `authorization-captured-{id}` only when status `captured`; `authorization-expires-{id}` text is RFC 3339 `expires_at`.
+- R208 done — `authorization-capture-amount-{id}` (prefilled remaining) and `authorization-capture-{id}` only on incoming open; `authorization-void-{id}` only on outgoing open.
+- R209 done — `authorization-error` when capture/void refused; `empty-authorizations` when the list is empty.
+- R210 done — UI reflects seeded and new holds; available shown as spending balance immediately after reset with open holds.
 
 ## Stage 2 — Product quality
-- R211 todo — Coherent, calm finance look; consistent type, spacing, colour, controls; primary actions obvious.
-- R212 todo — Available/held/pending/loading/success/refused/uncertain states visually distinct.
-- R213 todo — People, amounts and timestamps formatted for people; technical ids only where helpful.
-- R214 todo — Usable at 375 px and desktop without horizontal scrolling.
-- R215 todo — Visible labels, apparent keyboard focus, sufficient contrast.
-- R216 todo — Considered empty, loading and error states.
-- R217 todo — All browser assets (fonts, scripts, styles) inside the image; nothing fetched from outside.
+- R211 done — Coherent, calm finance look; consistent type, spacing, colour, controls; primary actions obvious.
+- R212 done — Available/held/pending/loading/success/refused/uncertain states visually distinct.
+- R213 done — People, amounts and timestamps formatted for people; technical ids only where helpful.
+- R214 done — Usable at 375 px and desktop without horizontal scrolling.
+- R215 done — Visible labels, apparent keyboard focus, sufficient contrast.
+- R216 done — Considered empty, loading and error states.
+- R217 done — All browser assets (fonts, scripts, styles) inside the image; nothing fetched from outside.
 
 ## Stage 2 — Concurrency
-- R218 todo — Concurrent requests serialize to some one-at-a-time order; invariants hold at every read.
+- R218 done — Concurrent requests serialize to some one-at-a-time order; invariants hold at every read.
 
 ## Added on coordinator review (msg 3b68e30d)
-- R219 todo — Stage-2 export/import round-trips authorizations (all statuses, captured_amount, payment_ids, expires_at), `authorization_ttl_seconds`, and authorize/capture idempotency records; replays after import return 200 with original bodies.
-- R220 todo — A stage-1 export (no authorizations/ttl) imports with empty authorizations, ttl 600, held 0.
-- R221 todo — Holds expire lazily by the clock, also right after import; `expires_at <= now` is expired; expiry releases the remainder exactly once (no double release on later capture/void).
-- R222 todo — Only `text/html` in Accept selects HTML on `/requests` and `/authorizations`; absent Accept, `application/json`, `*/*` get JSON; `/`, `/split`, `/signup`, `/login` served without a token (client-side gating).
-- R223 todo — Browser session token survives navigation between routes and a server-side import (same token strings).
-- R224 todo — UI lost-response retry re-sends the same Idempotency-Key and byte-equal body; a 200 replay is success.
-- R225 todo — Capture vs void vs expiry vs payment races never overspend (available never negative); each capture key moves money once; settlement net debit uses available.
-- R226 todo — `pay-visibility`/`authorize-visibility` default to public; UI amounts use the fixture's minor_units everywhere (JPY 0, BHD 3), incl. capture prefill and split preview.
+- R219 done — Stage-2 export/import round-trips authorizations (all statuses, captured_amount, payment_ids, expires_at), `authorization_ttl_seconds`, and authorize/capture idempotency records; replays after import return 200 with original bodies.
+- R220 done — A stage-1 export (no authorizations/ttl) imports with empty authorizations, ttl 600, held 0.
+- R221 done — Holds expire lazily by the clock, also right after import; `expires_at <= now` is expired; expiry releases the remainder exactly once (no double release on later capture/void).
+- R222 done — Only `text/html` in Accept selects HTML on `/requests` and `/authorizations`; absent Accept, `application/json`, `*/*` get JSON; `/`, `/split`, `/signup`, `/login` served without a token (client-side gating).
+- R223 done — Browser session token survives navigation between routes and a server-side import (same token strings).
+- R224 done — UI lost-response retry re-sends the same Idempotency-Key and byte-equal body; a 200 replay is success.
+- R225 done — Capture vs void vs expiry vs payment races never overspend (available never negative); each capture key moves money once; settlement net debit uses available.
+- R226 done — `pay-visibility`/`authorize-visibility` default to public; UI amounts use the fixture's minor_units everywhere (JPY 0, BHD 3), incl. capture prefill and split preview.
 
 ## Stage-1 review findings fixed in stage 2
-- M1 todo — Every generated id (payment, request, split, settlement, authorization, user) never collides with any seeded or imported id.
-- M2 todo — Reset with 150 users with distinct passwords completes well under 10 s (target < 3 s): scrypt in parallel, per-record cost parameters stored with the hash.
+- M1 done — Every generated id (payment, request, split, settlement, authorization, user) never collides with any seeded or imported id.
+- M2 done — Reset with 150 users with distinct passwords completes well under 10 s (target < 3 s): scrypt in parallel, per-record cost parameters stored with the hash.
+
+## Stage 2 evidence map
+- API, holds, expiry, races, M1, M2, stage-1/stage-2 import: `test_service.py` classes `Authorizations`, `SeededAuthorizations`,
+  `Stage1Import` (starts the real stage-1 server and imports its export), `Stage2RoundTrip`, `Html` (Accept negotiation).
+- Browser: `test_ui.py` — decimal parsing, JPY/BHD formatting, double submit, lost response after/before commit,
+  refused payment keeps inputs, latest refresh wins out of order, request cancelled elsewhere, split preview (BHD),
+  holds flow (seeded hold, capture prefill, partial capture), void + capture refused, session and pending retry
+  surviving export/import, 375 px with no horizontal scroll, labelled inputs and no placeholder text leaks.
+
+## Stage 2 interpretation decisions
+- The authorize form appears on `/` and on `/authorizations`; the wallet summary (available headline, total, held)
+  appears on `/`, `/requests` and `/authorizations`; `wallet-refresh` is on `/`.
+- `incoming-list`, `outgoing-list` and `authorization-list` are always rendered (possibly empty) next to the empty
+  state; `activity-list` is replaced by `empty-activity` when nothing is visible.
+- Capture of a hold whose status is `expired` (by clock or seeded) is 409 `authorization_expired`; void of an
+  expired hold is 409 `authorization_not_open`. `final` of the wrong JSON type is 400 `malformed_request`.
+- An empty capture body is treated as `{}` (optional body, as for request pay).
+- Lost outcomes on request pay, hold, split and capture show a neutral "couldn't confirm" notice (`*-uncertain`),
+  not the refusal element; the retry reuses the same key and body.
+- Passwords hashed by this version use scrypt N=2^12 (r=8), stored with the hash; stage-1 imports keep N=2^14.
 
 ## Serialization point
 One process, one in-memory store, one `threading.Lock` held for the full duration of every state read-modify-write

@@ -13,8 +13,8 @@ Built from the stage-1 and stage-2 requirements text only (UI not modelled); no 
 
 ```sh
 # product listening on 8080 (e.g. docker run -e PORT=8080 -p 8080:8080 <image>)
-python3 stage-1/model/driver.py --base http://127.0.0.1:8080 --seeds 1-20 --steps 150 --out /tmp/diff-s1
-python3 stage-1/model/driver.py --base http://127.0.0.1:8080 --replay /tmp/diff-s1/seed-7.json
+python3 stage-2/model/driver.py --base http://127.0.0.1:8080 --seeds 1-20 --steps 150 --out /tmp/diff-s2
+python3 stage-2/model/driver.py --base http://127.0.0.1:8080 --replay /tmp/diff-s2/seed-7.json
 ```
 
 Each seed draws a fixture (EUR/JPY/BHD, 3–6 users, seeded payments/requests, 0–2 operators, sometimes a
@@ -52,7 +52,7 @@ python3 stage-2/model/driver.py --base http://127.0.0.1:18200 --stage1-base http
 ## Self-check
 
 ```sh
-cd stage-1/model
+cd stage-2/model
 PORT=18090 python3 model_server.py &                          # faithful: expect 0 divergences
 PORT=18091 MODEL_BUG=held_ignored python3 model_server.py &   # also: private_leak, overdraft,
 #   replay_reexecutes, no_expiry, capture_closed

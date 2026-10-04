@@ -347,11 +347,15 @@ R75. A stage-3 service must import its own stage-1 and stage-2 exports (204). Th
 original amount at its original `created_at`. Settlement members and captures stay immutable. Holds keep
 their creation and capture instants.
 
-R76. Holds closed on stage 2 (final capture, void, clock expiry) keep their history after the upgrade: they
-hold funds from creation until the closing event. A capture's instant is its payment's `created_at`, an
-expiry's is `expires_at`, and a void's `closed_at` must lie inside the original void call's window ± 1 s.
-Stage 2 never showed that instant, so the driver bounds it by the call window and adopts the stage-3 value.
-*(Revised after reviewer finding B1: an earlier version also accepted any instant from creation onward.)*
+R76. Holds closed on stage 2 keep their history after the upgrade: they hold funds from creation, nonfinal
+captures reduce them at their capture instants, and they hold nothing after the closing event. A final
+capture closes at its payment's `created_at` and an expiry at `expires_at`; both are exact. **Voids issued on
+stage 2** follow the coordinator ruling of 2026-10-04 (msg e4152b91): a stage-2 export records no void
+instant and stage 2 is frozen, so the stage-3 `closed_at` may be any instant from the hold's latest known
+event (its creation or last capture) to the end of the import call. The model adopts the product's value,
+and every later historical read must be consistent with that value. A `closed_at` before the latest known
+event, after the import, or null is a divergence. *(History: strict void-call window in 2a02cfe/e5e63f8,
+relaxed for voids only by that ruling.)*
 Deterministic check: every chain run that passes through stage 2 sets the TTL to 3 s. It authorizes three
 holds and closes them by final capture, void and expiry. 1→2→3 chains skip the expiry case: a stage-1 export carries no TTL, so it is 600 s after the import. After the upgrade it reads `/me?as_of=created+1µs`
 for each hold and runs the time-travel property there.

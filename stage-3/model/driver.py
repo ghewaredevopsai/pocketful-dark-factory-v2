@@ -296,6 +296,7 @@ class Run:
         self.stale = []     # product tokens invalidated by an import
         self.stale_snaps = []  # product statement snapshot tokens from before a reset
         self.reset_win = None
+        self.import_end = None  # end of the upgrade import call (R76)
 
     def start(self, stage):
         self.base, self.model.stage = self.bases[stage], stage
@@ -427,6 +428,12 @@ class Run:
                            f"[{fmt_us(int(lo * US))}, {fmt_us(int(hi * US))}] ± {GUARD}s")
         return s
 
+    def legacy_void_win(self, m, a):
+        """R76 (coordinator ruling): a hold voided on stage 2 may report any closed_at from its latest known event
+        (creation or last capture) to the end of the import call; the model adopts the product's value."""
+        last = max([a["c"]] + [m.s["payments"][pid]["t"] for pid, _, _ in a["caps"]]) / US
+        return (last + GUARD, self.import_end if self.import_end is not None else time.time())
+
     def patch(self, m, mres, pres):
         """Adopt the product's server-assigned instants (after checking each lies in the call window)."""
         if not mres.ok or not isinstance(mres.body, dict):
@@ -457,7 +464,7 @@ class Run:
             closed = None
             if a["status"] == "voided" and "closed_at" in a["unk"]:
                 if m.stage >= 3 and isinstance(pb.get("closed_at"), str):
-                    w = a.get("void_win") or (lo, hi)  # R76
+                    w = self.legacy_void_win(m, a) if a.get("void_win") else (lo, hi)  # R76
                     closed = self.win(pb["closed_at"], w[0], w[1], "closed_at")
                 elif m.stage < 3 and "void_win" not in a:  # stage 2 shows no closed_at: estimate, refine later
                     a["void_win"] = (lo, hi)
@@ -469,7 +476,7 @@ class Run:
                 a = S["auths"].get(aid)
                 if a and a["status"] == "voided" and "closed_at" in a["unk"] and a.get("void_win") \
                         and isinstance(it.get("closed_at"), str):
-                    w = a["void_win"]  # R76: inside the original void call
+                    w = self.legacy_void_win(m, a)  # R76
                     m.adopt_auth(aid, closed=self.win(it["closed_at"], w[0], w[1], "closed_at (legacy void)"))
 
     def explain(self, model, b, fn, pres):
@@ -616,6 +623,7 @@ class Run:
         self.start(op["to"])
         pres = http_call(self.base, "POST", "/_test/import", "", {"Content-Type": "application/json"},
                          json.dumps(pb, ensure_ascii=False))
+        self.import_end = time.time()
         if pres.get("err") or pres["status"] != 204:
             self.fail(i, op, f"stage-{op['to']} import of the stage-{op['from']} export must return 204",
                       product={k: pres.get(k) for k in ("status", "raw", "err")})
@@ -634,8 +642,8 @@ class Run:
                     if a and a["status"] == "voided" and "closed_at" in a["unk"] and a.get("void_win") \
                             and isinstance(it.get("closed_at"), str):
                         try:
-                            v = self.win(it["closed_at"], a["void_win"][0], a["void_win"][1],
-                                         "closed_at (hold voided before the upgrade)")
+                            w = self.legacy_void_win(self.model, a)
+                            v = self.win(it["closed_at"], w[0], w[1], "closed_at (hold voided before the upgrade)")
                         except Mismatch as e:
                             self.fail(i, op, str(e))
                         self.model.adopt_auth(aid, closed=v)

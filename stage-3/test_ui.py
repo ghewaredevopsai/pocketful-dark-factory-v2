@@ -433,6 +433,36 @@ class UI(unittest.TestCase):
             self.page.wait_for_timeout(300)
             self.page.screenshot(path=os.path.join(SHOTS, "d%s.png" % route.replace("/", "_")), full_page=True)
 
+    def test_m3_closed_holds_do_not_say_expired(self):
+        a1 = http("POST", "/authorizations", {"to_handle": "bob", "amount": 100}, token("ada"), "a1")[1]["authorization_id"]
+        a2 = http("POST", "/authorizations", {"to_handle": "bob", "amount": 100}, token("ada"), "a2")[1]["authorization_id"]
+        http("POST", "/authorizations/%s/capture" % a1, {}, token("bob"), "c")
+        http("POST", "/authorizations/%s/void" % a2, None, token("ada"))
+        self.login()
+        p = self.page
+        p.goto("/authorizations")
+        for aid, word in ((a1, "Collected"), (a2, "Released")):
+            p.wait_for_selector(sel("authorization-item-" + aid))
+            text = p.inner_text(sel("authorization-item-" + aid))
+            self.assertNotIn("Expire", text)
+            self.assertIn(word, text)
+            self.assertTrue(p.text_content(sel("authorization-expires-" + aid)).strip())
+
+    def test_m4_feed_follows_pay_form_on_phones(self):
+        http("POST", "/payments", {"to_handle": "bob", "amount": 100}, token("ada"), "p")
+        self.ctx.close()
+        self.ctx = self.browser.new_context(base_url=BASE, viewport={"width": 375, "height": 800})
+        self.page = self.ctx.new_page()
+        self.login()
+        p = self.page
+        p.wait_for_selector(sel("activity-list"))
+        top = lambda t: p.eval_on_selector(sel(t), "e => e.getBoundingClientRect().top + window.scrollY")
+        self.assertLess(top("activity-list"), top("request-submit"))
+        self.assertLess(top("pay-submit"), top("activity-list"))
+        self.assertLess(top("activity-list"), 1100)
+        for t in ("request-handle", "authorize-handle", "authorize-submit"):
+            self.assertIsNotNone(p.query_selector(sel(t)))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)

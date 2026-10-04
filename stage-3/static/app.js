@@ -308,11 +308,14 @@ function pageWallet(main) {
   main.append(
     h("div", { class: "stack" },
       wallet.el,
-      h("div", { class: "grid-2" },
-        h("div", { class: "stack" }, pay, req, auth),
-        h("section", { class: "card", "aria-labelledby": "act-h" },
+      // Areas: on phones the feed follows the pay form instead of sitting below all three forms (M4).
+      h("div", { class: "wallet-grid" },
+        h("div", { class: "area-pay" }, pay),
+        h("section", { class: "card area-act", "aria-labelledby": "act-h" },
           h("div", { class: "card-head" }, h("h2", { id: "act-h" }, "Activity"), h("p", {}, "Newest first")),
-          feedMsg, feed))));
+          feedMsg, feed),
+        h("div", { class: "area-req" }, req),
+        h("div", { class: "area-hold" }, auth))));
   refresh();
 }
 
@@ -654,12 +657,21 @@ function pageAuthorizations(main) {
           a.status === "open" ? h("span", {}, "Still held " + money(a.remaining_amount)) : null,
           a.captured_amount > 0 && a.status !== "captured" ? h("span", {}, "Collected " + money(a.captured_amount)) : null,
           a.status === "captured" ? h("span", {}, "Collected ", h("span", { testid: "authorization-captured-" + id }, money(a.captured_amount))) : null,
-          h("span", {}, (a.status === "open" ? "Expires " : "Expired ") + when(a.expires_at)),
-          h("time", { class: "tech", testid: "authorization-expires-" + id, datetime: a.expires_at, title: "Expiry (RFC 3339)" }, a.expires_at))),
+          h("span", {}, closedLabel(a)),
+          h("time", { class: "tech", testid: "authorization-expires-" + id, datetime: a.expires_at,
+            title: "Hold deadline (RFC 3339)" }, a.expires_at))),
       h("div", { class: "item-side" },
         h("span", { class: "item-amount" }, h("span", { testid: "authorization-amount-" + id }, money(a.amount))),
         h("span", { class: "badge b-" + a.status }, STATUS_LABEL[a.status])),
       tail);
+  }
+
+  // Only open and expired holds talk about expiry; collected and released holds show when they closed (M3).
+  function closedLabel(a) {
+    if (a.status === "open") return "Expires " + when(a.expires_at);
+    if (a.status === "expired") return "Expired " + when(a.expires_at);
+    const at = a.closed_at ? " " + when(a.closed_at) : "";
+    return (a.status === "captured" ? "Collected" : "Released") + at + " · hold deadline";
   }
 
   function paint(auths) {

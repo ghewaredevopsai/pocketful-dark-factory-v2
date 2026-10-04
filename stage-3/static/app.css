@@ -184,3 +184,12 @@ input:focus-visible, select:focus-visible { outline: 3px solid var(--focus); out
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .tech { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .75rem; color: var(--muted);
   overflow-wrap: anywhere; }
+
+/* wallet page areas: phone = pay, activity, request, hold; desktop = forms left, activity right */
+.wallet-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "pay" "act" "req" "hold"; }
+.area-pay { grid-area: pay; } .area-act { grid-area: act; } .area-req { grid-area: req; } .area-hold { grid-area: hold; }
+@media (min-width: 860px) {
+  .wallet-grid { grid-template-columns: minmax(0, 380px) minmax(0, 1fr); grid-template-rows: auto auto 1fr;
+    grid-template-areas: "pay act" "req act" "hold act"; align-items: start; }
+}

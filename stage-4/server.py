@@ -307,7 +307,8 @@ class State:
     @staticmethod
     def revision_view(p, r):
         return {"payment_id": p["payment_id"], "revision": r["revision"], "amount": r["amount"],
-                "effective_at": r["effective_at"], "recorded_at": r["recorded_at"], "reason": r["reason"]}
+                "effective_at": r["effective_at"], "recorded_at": r["recorded_at"], "reason": r["reason"],
+                "correction_batch_id": r.get("correction_batch_id")}
 
     # holds
     def expire(self, now=None):
@@ -337,14 +338,14 @@ class State:
 
     # mutations
     def add_payment(self, frm, to, amount, note, visibility, ts, request_id=None, settlement_id=None,
-                    authorization_id=None):
+                    authorization_id=None, refund_of=None):
         p = {
             "payment_id": self.new_id("p"),
             "from_user_id": frm["id"], "from_handle": frm["handle"],
             "to_user_id": to["id"], "to_handle": to["handle"],
             "amount": amount, "currency": self.currency, "note": note,
             "visibility": visibility, "request_id": request_id,
-            "authorization_id": authorization_id,
+            "authorization_id": authorization_id, "refund_of": refund_of,
             "settlement_id": settlement_id, "created_at": iso(ts),
             "_ts": ts, "_seq": self.next_seq(), "_revs": [first_revision(amount, ts, iso(ts))],
         }
@@ -352,6 +353,11 @@ class State:
         return p
 
     def index_payment(self, p):
+        """Index a payment; a refund (refund_of set) is linked to its already indexed target."""
+        p.setdefault("refund_of", None)
+        p["_refunds"] = []
+        if p["refund_of"] is not None:
+            self.payment_ids[p["refund_of"]]["_refunds"].append(p)
         self.payments.append(p)
         self.payment_ids[p["payment_id"]] = p
         self.used.add(p["payment_id"])
@@ -463,10 +469,12 @@ class State:
             need(isinstance(p.get("note"), str) and p.get("visibility") in ("public", "private"), "payment note")
             for f in ("request_id", "settlement_id", "authorization_id"):
                 need(p.get(f) is None or isinstance(p[f], str), "payment " + f)
+            need(p.get("refund_of") is None or (p["refund_of"] in st.payment_ids
+                                                and st.payment_ids[p["refund_of"]]["refund_of"] is None), "refund_of")
             ts = parse_ts(p.get("created_at"))
             np_ = {k: p.get(k) for k in ("payment_id", "from_user_id", "from_handle", "to_user_id", "to_handle",
                                          "amount", "currency", "note", "visibility", "request_id",
-                                         "authorization_id", "settlement_id", "created_at")}
+                                         "authorization_id", "refund_of", "settlement_id", "created_at")}
             np_.update(amount=integral(p["amount"]), _ts=ts, _seq=integral(p["_seq"]))
             revs = p.get("revisions")
             if revs is None:  # stage-1/stage-2 export: no corrections existed
@@ -477,7 +485,12 @@ class State:
                 for i, r in enumerate(revs, 1):
                     need(isinstance(r, dict) and integral(r.get("revision")) == i and is_int(r.get("amount"))
                          and isinstance(r.get("reason"), str), "payment revision")
+                    need(r.get("correction_batch_id") is None or isinstance(r["correction_batch_id"], str),
+                         "correction_batch_id")
+                    if r.get("correction_batch_id"):
+                        st.used.add(r["correction_batch_id"])
                     np_["_revs"].append({"revision": i, "amount": integral(r["amount"]), "reason": r["reason"],
+                                         "correction_batch_id": r.get("correction_batch_id"),
                                          "effective_at": r.get("effective_at"), "recorded_at": r.get("recorded_at"),
                                          "_eff": parse_ts(r.get("effective_at")), "_rec": parse_ts(r.get("recorded_at"))})
             st.index_payment(np_)
@@ -542,6 +555,10 @@ class State:
         st.seq = integral(d["seq"])
         if d.get("last_ts") is not None:
             st.last_ts = parse_ts(d["last_ts"])
+        # the clock never goes back behind any recorded instant (new revisions are strictly later)
+        recs = [r["_rec"] for p in st.payments for r in p["_revs"]] + [p["_ts"] for p in st.payments]
+        if recs and (st.last_ts is None or max(recs) > st.last_ts):
+            st.last_ts = max(recs)
         return st
 
 
@@ -694,7 +711,7 @@ def state_from_fixture(fx):
         amt = typed(p, "amount", "int")
         note = typed(p, "note", str, False)
         vis = typed(p, "visibility", str, False) or "public"
-        links = {f: p.get(f) for f in ("request_id", "settlement_id", "authorization_id")}
+        links = {f: p.get(f) for f in ("request_id", "settlement_id", "authorization_id", "refund_of")}
         fresh_id(pid, "payment")
         if frm not in st.users or to not in st.users:
             raise invalid("payment references an unknown user")
@@ -703,7 +720,11 @@ def state_from_fixture(fx):
         if vis not in ("public", "private"):
             raise invalid("bad visibility")
         if any(v is not None and not isinstance(v, str) for v in links.values()):
-            raise bad("request_id/settlement_id/authorization_id must be strings")
+            raise bad("request_id/settlement_id/authorization_id/refund_of must be strings")
+        if links["refund_of"] is not None:
+            tgt = next((r for r, _ in seeded if "settlement_id" in r and r["payment_id"] == links["refund_of"]), None)
+            if tgt is None or tgt["refund_of"] is not None:
+                raise invalid("refund_of must name an earlier seeded payment that is not a refund")
         given = None
         if "created_at" in p:
             ts, given = instant(p["created_at"], "created_at")
@@ -716,7 +737,7 @@ def state_from_fixture(fx):
                "to_user_id": to, "to_handle": tu["handle"], "amount": amt,
                "currency": currency, "note": note or "", "visibility": vis,
                "request_id": links["request_id"], "authorization_id": links["authorization_id"],
-               "settlement_id": links["settlement_id"], "_given": given}
+               "refund_of": links["refund_of"], "settlement_id": links["settlement_id"], "_given": given}
         if links["settlement_id"]:
             st.used.add(links["settlement_id"])
         seeded.append((rec, ts))
@@ -863,11 +884,12 @@ def signed(p, uid, amount):
 def payment_events(st, uid, known, override=None):
     """(effective time, delta, payment, revision) for the user's payments under `known`.
 
-    `override` = (payment, revision) substitutes a candidate latest revision (correction pre-check).
+    `override` = {payment_id: revision} substitutes candidate latest revisions (correction pre-check).
     """
     out = []
     for p in st.user_pays.get(uid, ()):
-        r = override[1] if override and override[0] is p else selected(p, known)
+        r = override.get(p["payment_id"]) if override else None
+        r = r or selected(p, known)
         if r is not None:
             out.append((r["_eff"], signed(p, uid, r["amount"]), p, r))
     return out
@@ -1011,14 +1033,16 @@ def h_revisions(st, user, q, body, pid):
     return 200, {"revisions": [st.revision_view(p, r) for r in p["_revs"]]}
 
 
-def h_correction(st, user, q, body, pid):
-    p = st.payment_ids.get(pid)
-    if p is None:
-        raise ApiError(404, "not_found", "no such payment")
-    if p["from_user_id"] != user["id"]:
-        raise ApiError(403, "forbidden", "only the original sender may correct a payment")
-    if p.get("settlement_id") or p.get("authorization_id"):
-        raise ApiError(422, "linked_payment_immutable", "settlement members and captures cannot be corrected")
+def refunded(p):
+    return sum(r["amount"] for r in p["_refunds"])
+
+
+def correction_item(st, p, body, members_ok):
+    """Validate one correction of payment p (single or batch item). Returns (current revision, amount, reason,
+    effective datetime, effective text). Order: immutable -> fields -> stale_revision -> refund floor."""
+    if p.get("authorization_id") or p.get("refund_of") or (p.get("settlement_id") and not members_ok):
+        raise ApiError(422, "linked_payment_immutable", "captures, refunds and (singly) settlement members "
+                                                        "cannot be corrected")
     for f in ("expected_revision", "amount", "effective_at", "reason"):
         if f not in body:
             raise invalid("%s is required" % f)
@@ -1037,6 +1061,18 @@ def h_correction(st, user, q, body, pid):
     current = p["_revs"][-1]
     if expected != current["revision"]:
         raise ApiError(409, "stale_revision", "the payment is at revision %d" % current["revision"])
+    if amount < refunded(p):
+        raise ApiError(422, "refund_exceeds_payment", "the payment has already been refunded beyond that amount")
+    return current, amount, reason, eff, eff_text
+
+
+def h_correction(st, user, q, body, pid):
+    p = st.payment_ids.get(pid)
+    if p is None:
+        raise ApiError(404, "not_found", "no such payment")
+    if p["from_user_id"] != user["id"]:
+        raise ApiError(403, "forbidden", "only the original sender may correct a payment")
+    current, amount, reason, eff, eff_text = correction_item(st, p, body, members_ok=False)
     diff = amount - current["amount"]
     sender, receiver = st.users[p["from_user_id"]], st.users[p["to_user_id"]]
     debtor, creditor = (sender, receiver) if diff > 0 else (receiver, sender)
@@ -1046,15 +1082,83 @@ def h_correction(st, user, q, body, pid):
         raise invalid("balance would exceed 2^53")
     rec = st.stamp()
     cand = {"revision": current["revision"] + 1, "amount": amount, "effective_at": eff_text,
-            "recorded_at": iso(rec), "reason": reason, "_eff": eff, "_rec": rec}
+            "recorded_at": iso(rec), "reason": reason, "_eff": eff, "_rec": rec, "correction_batch_id": None}
     for u in (sender, receiver):
-        if not boundary_ok(st, u, (p, cand)):
+        if not boundary_ok(st, u, {p["payment_id"]: cand}):
             raise ApiError(409, "historical_overdraft", "the correction would overdraw a wallet in the past")
     debtor["balance"] -= abs(diff)
     creditor["balance"] += abs(diff)
     p["_revs"].append(cand)
     return 201, st.revision_view(p, cand)
 
+
+def h_correction_batch(st, user, q, body):
+    items = body.get("corrections")
+    if not isinstance(items, list) or not 1 <= len(items) <= 32 or not all(isinstance(i, dict) for i in items):
+        raise invalid("corrections must be a list of 1 to 32 objects")
+    pids = [i.get("payment_id") for i in items]
+    if not all(isinstance(x, str) for x in pids) or len(set(pids)) != len(pids):
+        raise invalid("every correction needs a distinct payment_id")
+    plan = []  # (payment, current revision, amount, reason, eff, eff_text) in input order
+    for it in items:  # item errors in input order
+        p = st.payment_ids.get(it["payment_id"])
+        if p is None:
+            raise ApiError(404, "not_found", "no such payment: %s" % it["payment_id"])
+        plan.append((p,) + correction_item(st, p, it, members_ok=True))
+    chosen = set(pids)
+    instants = {}
+    for p, _, _, _, eff, _ in plan:
+        if p["settlement_id"]:
+            instants.setdefault(p["settlement_id"], set()).add(eff)
+    for sid in instants:
+        if any(m["payment_id"] not in chosen for m in st.payments if m["settlement_id"] == sid):
+            raise ApiError(422, "incomplete_settlement", "every member of settlement %s must be corrected" % sid)
+    for sid, effs in instants.items():
+        if len(effs) != 1:
+            raise invalid("members of settlement %s need identical effective instants" % sid)
+    delta = {}
+    for p, current, amount, _, _, _ in plan:
+        diff = amount - current["amount"]
+        delta[p["from_user_id"]] = delta.get(p["from_user_id"], 0) - diff
+        delta[p["to_user_id"]] = delta.get(p["to_user_id"], 0) + diff
+    for uid, d in delta.items():
+        u = st.users[uid]
+        if d < 0 and st.available(u) + d < 0:
+            raise ApiError(409, "insufficient_funds", "available balance cannot cover the corrections")
+        if u["balance"] + d > MAX_BALANCE:
+            raise invalid("balance would exceed 2^53")
+    rec = st.stamp()
+    cands = {p["payment_id"]: {"revision": current["revision"] + 1, "amount": amount, "effective_at": eff_text,
+                               "recorded_at": iso(rec), "reason": reason, "_eff": eff, "_rec": rec}
+             for p, current, amount, reason, eff, eff_text in plan}
+    for uid in delta:
+        if not boundary_ok(st, st.users[uid], cands):
+            raise ApiError(409, "historical_overdraft", "the corrections would overdraw a wallet in the past")
+    bid = st.new_id("cb")
+    for uid, d in delta.items():
+        st.users[uid]["balance"] += d
+    for p, *_ in plan:
+        cands[p["payment_id"]]["correction_batch_id"] = bid
+        p["_revs"].append(cands[p["payment_id"]])
+    return 201, {"correction_batch_id": bid, "recorded_at": iso(rec),
+                 "revisions": [st.revision_view(p, cands[p["payment_id"]]) for p, *_ in plan]}
+
+
+def h_refund(st, user, q, body, pid):
+    p = st.payment_ids.get(pid)
+    if p is None:
+        raise ApiError(404, "not_found", "no such payment")
+    if p["to_user_id"] != user["id"]:
+        raise ApiError(403, "forbidden", "only the original receiver may refund a payment")
+    if p["refund_of"] is not None:
+        raise ApiError(422, "invalid_refund_target", "a refund cannot be refunded")
+    amount = amount_field(body)
+    if refunded(p) + amount > p["_revs"][-1]["amount"]:
+        raise ApiError(422, "refund_exceeds_payment", "refunds would exceed the payment's current amount")
+    sender = st.users[p["from_user_id"]]
+    st.move(user, sender, amount)
+    r = st.add_payment(user, sender, amount, p["note"], p["visibility"], st.stamp(), refund_of=pid)
+    return 201, st.payment_view(r)
 
 
 def h_payment(st, user, q, body):
@@ -1356,6 +1460,8 @@ ROUTES = [
     ("GET", re.compile(r"^/statement$"), h_statement, False),
     ("POST", re.compile(r"^/payments/([^/]+)/corrections$"), h_correction, True),
     ("GET", re.compile(r"^/payments/([^/]+)/revisions$"), h_revisions, False),
+    ("POST", re.compile(r"^/payments/([^/]+)/refunds$"), h_refund, True),
+    ("POST", re.compile(r"^/correction-batches$"), h_correction_batch, True),
 ]
 UI_ROUTES = {"/", "/requests", "/split", "/signup", "/login", "/authorizations"}
 UI_ALWAYS = {"/", "/split", "/signup", "/login"}  # no API shares these paths
@@ -1482,7 +1588,7 @@ class Handler(BaseHTTPRequestHandler):
         m, rx, fn, idem = next(r for r in ROUTES if r[0] == method and r[1].match(path))
         args = rx.match(path).groups()
         token = self.bearer()
-        if fn is h_settlement:
+        if fn in (h_settlement, h_correction_batch):
             with LOCK:
                 uid = STATE.tokens.get(token)
                 if uid is not None and uid not in STATE.operators:
@@ -1522,7 +1628,7 @@ class Handler(BaseHTTPRequestHandler):
         if not idem:
             status, out = fn(st, user, q, body, *args)
             return self.send(status, out)
-        if fn is h_settlement and uid not in st.operators:
+        if fn in (h_settlement, h_correction_batch) and uid not in st.operators:
             raise ApiError(403, "forbidden", "not a settlement operator")
         k = "%s\x00%s\x00%s" % (uid, path, key)
         c = canon_str(body)

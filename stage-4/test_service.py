@@ -1637,5 +1637,384 @@ class OneInstantPerWrite(Base):
             self.assertEqual((got["status"], got["closed_at"]), ("expired", h["expires_at"]))
 
 
+
+# ---------------------------------------------------------------- stage 4
+
+def pay(tok, to, amount, key=None):
+    s, b, _ = call("POST", "/payments", {"to_handle": to, "amount": amount, "note": "n", "visibility": "private"},
+                   tok, key or "p-%s-%d" % (to, amount))
+    assert s == 201, (s, b)
+    return b
+
+
+def refund(tok, pid, amount, key="r"):
+    return call("POST", "/payments/%s/refunds" % pid, {"amount": amount}, tok, key)
+
+
+def item(p, amount, rev=1, eff=None, reason="fix"):
+    return {"payment_id": p["payment_id"], "expected_revision": rev, "amount": amount,
+            "effective_at": eff or p["created_at"], "reason": reason}
+
+
+def batch(tok, items, key="b"):
+    return call("POST", "/correction-batches", {"corrections": items}, tok, key)
+
+
+class Refunds(Base):
+    fx = staticmethod(lambda: fixture(ops=["u_cy"]))
+
+    def test_refund_is_linked_reverse_payment_and_replays(self):
+        p = pay(self.t["ada"], "bob", 1000)
+        self.assertIsNone(p["refund_of"])
+        s, r, _ = refund(self.t["bob"], p["payment_id"], 200, "k")
+        self.assertEqual(s, 201, r)
+        self.assertEqual((r["refund_of"], r["from_handle"], r["to_handle"], r["amount"], r["note"], r["visibility"],
+                          r["request_id"], r["authorization_id"], r["settlement_id"]),
+                         (p["payment_id"], "bob", "ada", 200, "n", "private", None, None, None))
+        self.assertEqual(balances(self.t), {"ada": 9200, "bob": 3300, "cy": 500})
+        self.assertEqual(refund(self.t["bob"], p["payment_id"], 200, "k")[:2], (200, r))
+        self.err(refund(self.t["bob"], p["payment_id"], 300, "k"), 409, "idempotency_key_reuse")
+        self.assertEqual(balances(self.t)["bob"], 3300)
+        feed = call("GET", "/activity", token=self.t["ada"])[1]["payments"]
+        self.assertEqual([(x["payment_id"], x["refund_of"]) for x in feed], [(r["payment_id"], p["payment_id"]),
+                                                                            (p["payment_id"], None)])
+        st = call("GET", "/statement", token=self.t["ada"])[1]
+        self.assertEqual([e["delta"] for e in st["entries"]], [-1000, 200])
+        self.assertEqual(st["entries"][1]["payment"]["refund_of"], p["payment_id"])
+        m = call("GET", "/me" + q(as_of=ts_after(r["created_at"], -1)), token=self.t["ada"])[1]
+        self.assertEqual(m["balance"], 9000)
+        revs = call("GET", "/payments/%s/revisions" % r["payment_id"], token=self.t["ada"])[1]["revisions"]
+        self.assertEqual([(x["revision"], x["amount"], x["correction_batch_id"]) for x in revs], [(1, 200, None)])
+
+    def test_errors(self):
+        p = pay(self.t["ada"], "bob", 1000)
+        pid = p["payment_id"]
+        self.err(refund(None, pid, 1), 401, "unauthenticated")
+        self.err(call("POST", "/payments/%s/refunds" % pid, {"amount": 1}, self.t["bob"]), 400,
+                 "missing_idempotency_key")
+        self.err(refund(self.t["bob"], "p_nope", 1), 404, "not_found")
+        self.err(refund(self.t["ada"], pid, 1), 403, "forbidden")
+        self.err(refund(self.t["cy"], pid, 1), 403, "forbidden")
+        for bad_amount in (0, -1, 1.5, "10", None, 1_000_000_001, True):
+            self.err(call("POST", "/payments/%s/refunds" % pid, {"amount": bad_amount}, self.t["bob"], "v"), 422,
+                     "validation_failed")
+        self.err(call("POST", "/payments/%s/refunds" % pid, {}, self.t["bob"], "v"), 422, "validation_failed")
+        self.err(call("POST", "/payments/%s/refunds" % pid, None, self.t["bob"], "v"), 400, "malformed_request")
+        self.assertEqual(refund(self.t["bob"], pid, 600, "a")[0], 201)
+        self.err(refund(self.t["bob"], pid, 401, "b"), 422, "refund_exceeds_payment")
+        r = refund(self.t["bob"], pid, 400, "c")
+        self.assertEqual(r[0], 201)
+        self.err(refund(self.t["bob"], pid, 1, "d"), 422, "refund_exceeds_payment")
+        # a refund cannot be refunded (its receiver is the original sender)
+        self.err(refund(self.t["ada"], r[1]["payment_id"], 1, "e"), 422, "invalid_refund_target")
+        self.assertEqual(balances(self.t), {"ada": 10000, "bob": 2500, "cy": 500})
+
+    def test_against_current_corrected_amount(self):
+        p = pay(self.t["ada"], "bob", 1000)
+        self.assertEqual(corr(self.t["ada"], p["payment_id"], "c", expected_revision=1, amount=300,
+                              effective_at=p["created_at"], reason="fix")[0], 201)
+        self.err(refund(self.t["bob"], p["payment_id"], 301), 422, "refund_exceeds_payment")
+        self.assertEqual(refund(self.t["bob"], p["payment_id"], 300, "ok")[0], 201)
+
+    def test_insufficient_available_including_holds(self):
+        p = pay(self.t["ada"], "cy", 1000)  # cy: 1500
+        pay(self.t["cy"], "bob", 1200)       # cy: 300
+        self.err(refund(self.t["cy"], p["payment_id"], 301), 409, "insufficient_funds")
+        h = call("POST", "/authorizations", {"to_handle": "bob", "amount": 250}, self.t["cy"], "h")
+        self.assertEqual(h[0], 201)          # cy: total 300, available 50
+        self.err(refund(self.t["cy"], p["payment_id"], 51, "x"), 409, "insufficient_funds")
+        self.assertEqual(balances(self.t), {"ada": 9000, "bob": 3700, "cy": 300})
+        self.assertEqual(refund(self.t["cy"], p["payment_id"], 51, "x")[0], 409)  # key not claimed by a failure
+        self.assertEqual(refund(self.t["cy"], p["payment_id"], 50, "y")[0], 201)
+
+    def test_request_capture_and_settlement_targets(self):
+        rq = call("POST", "/requests", {"payer_handle": "ada", "amount": 400}, self.t["bob"], "rq")[1]
+        rp = call("POST", "/requests/%s/pay" % rq["request_id"], {}, self.t["ada"], "pay")[1]
+        self.assertEqual(refund(self.t["bob"], rp["payment_id"], 400, "r1")[0], 201)
+        got = [x for x in call("GET", "/requests", token=self.t["bob"])[1]["requests"]][0]
+        self.assertEqual((got["status"], got["payment_id"]), ("paid", rp["payment_id"]))
+        h = call("POST", "/authorizations", {"to_handle": "bob", "amount": 1000}, self.t["ada"], "h")[1]
+        c = call("POST", "/authorizations/%s/capture" % h["authorization_id"], {"amount": 300}, self.t["bob"], "c")[1]
+        rc = refund(self.t["bob"], c["payment_id"], 300, "r2")
+        self.assertEqual(rc[0], 201)
+        self.assertIsNone(rc[1]["authorization_id"])
+        a = call("GET", "/authorizations", token=self.t["ada"])[1]["authorizations"][0]
+        self.assertEqual((a["status"], a["captured_amount"], a["remaining_amount"]), ("captured", 300, 0))
+        self.assertEqual(me(self.t["ada"])["held"], 0)
+        sp = call("POST", "/settlements", {"transfers": [{"from_handle": "ada", "to_handle": "bob", "amount": 500},
+                                                         {"from_handle": "bob", "to_handle": "cy", "amount": 100}]},
+                  self.t["cy"], "s")[1]
+        m = sp["payments"][0]
+        rs = refund(self.t["bob"], m["payment_id"], 500, "r3")
+        self.assertEqual(rs[0], 201)
+        self.assertIsNone(rs[1]["settlement_id"])
+        self.assertEqual(call("POST", "/settlements", {"transfers": [{"from_handle": "ada", "to_handle": "bob",
+                                                                       "amount": 500},
+                                                                      {"from_handle": "bob", "to_handle": "cy",
+                                                                       "amount": 100}]}, self.t["cy"], "s")[:2],
+                         (200, sp))
+        feed = {x["payment_id"]: x for x in call("GET", "/activity", token=self.t["bob"])[1]["payments"]}
+        self.assertEqual(feed[m["payment_id"]]["settlement_id"], sp["settlement_id"])
+        self.assertEqual(sum(balances(self.t).values()), 13000)
+
+    def test_concurrent_refunds_never_exceed(self):
+        p = pay(self.t["ada"], "bob", 1000)
+        with ThreadPoolExecutor(20) as ex:
+            res = list(ex.map(lambda i: refund(self.t["bob"], p["payment_id"], 100, "k%d" % i)[0], range(25)))
+        self.assertEqual((res.count(201), res.count(422)), (10, 15))
+        self.assertEqual(balances(self.t)["ada"], 10000)
+
+
+class CorrectionsWithRefunds(Base):
+    def test_rules(self):
+        p = pay(self.t["ada"], "bob", 1000)
+        r = refund(self.t["bob"], p["payment_id"], 400)[1]
+        self.err(corr(self.t["bob"], r["payment_id"], "x", expected_revision=1, amount=1, effective_at=r["created_at"],
+                      reason="x"), 422, "linked_payment_immutable")
+        self.err(corr(self.t["ada"], p["payment_id"], "y", expected_revision=1, amount=399,
+                      effective_at=p["created_at"], reason="x"), 422, "refund_exceeds_payment")
+        s, b, _ = corr(self.t["ada"], p["payment_id"], "z", expected_revision=1, amount=400,
+                       effective_at=p["created_at"], reason="x")
+        self.assertEqual((s, b["correction_batch_id"]), (201, None))
+        self.assertEqual(balances(self.t), {"ada": 10000, "bob": 2500, "cy": 500})
+
+    def test_capture_immutable(self):
+        h = call("POST", "/authorizations", {"to_handle": "bob", "amount": 100}, self.t["ada"], "h")[1]
+        c = call("POST", "/authorizations/%s/capture" % h["authorization_id"], {}, self.t["bob"], "c")[1]
+        self.err(corr(self.t["ada"], c["payment_id"], "x", expected_revision=1, amount=1,
+                      effective_at=c["created_at"], reason="x"), 422, "linked_payment_immutable")
+
+
+class CorrectionBatches(Base):
+    fx = staticmethod(lambda: fixture(ops=["u_cy"]))
+
+    def settle(self, key="s", amounts=(500, 100)):
+        sp = call("POST", "/settlements", {"transfers": [
+            {"from_handle": "ada", "to_handle": "bob", "amount": amounts[0]},
+            {"from_handle": "bob", "to_handle": "ada", "amount": amounts[1]}]}, self.t["cy"], key)
+        self.assertEqual(sp[0], 201, sp)
+        return sp[1]
+
+    def test_success_shape_replay_and_history(self):
+        p1, p2 = pay(self.t["ada"], "bob", 1000), pay(self.t["bob"], "ada", 300)
+        sp = self.settle()
+        st0 = call("GET", "/statement", token=self.t["ada"])[1]
+        items = [item(p2, 0), item(sp["payments"][1], 50, eff=sp["committed_at"]),
+                 item(sp["payments"][0], 400, eff=sp["committed_at"]), item(p1, 900)]
+        s, b, _ = batch(self.t["cy"], items, "B")
+        self.assertEqual(s, 201, b)
+        self.assertTrue(b["correction_batch_id"])
+        self.assertEqual([(r["payment_id"], r["revision"], r["amount"], r["recorded_at"], r["correction_batch_id"])
+                          for r in b["revisions"]],
+                         [(x["payment_id"], 2, x["amount"], b["recorded_at"], b["correction_batch_id"]) for x in items])
+        self.assertTrue(all(ts(b["recorded_at"]) > ts(x["created_at"]) for x in (p1, p2) + tuple(sp["payments"])))
+        # ada: 10000 -1000 +300 -500 +100 = 8900; corrected: -900 +0 -400 +50 = 8750
+        self.assertEqual(balances(self.t), {"ada": 8750, "bob": 3750, "cy": 500})
+        self.assertEqual(batch(self.t["cy"], items, "B")[:2], (200, b))
+        self.err(batch(self.t["cy"], items[:1], "B"), 409, "idempotency_key_reuse")
+        self.assertEqual(call("POST", "/settlements", {"transfers": [
+            {"from_handle": "ada", "to_handle": "bob", "amount": 500},
+            {"from_handle": "bob", "to_handle": "ada", "amount": 100}]}, self.t["cy"], "s")[:2], (200, sp))
+        revs = call("GET", "/payments/%s/revisions" % p1["payment_id"], token=self.t["ada"])[1]["revisions"]
+        self.assertEqual([(r["revision"], r["correction_batch_id"]) for r in revs],
+                         [(1, None), (2, b["correction_batch_id"])])
+        frozen = call("GET", "/statement" + q(snapshot=st0["snapshot"]), token=self.t["ada"])[1]
+        self.assertEqual((frozen["closing_balance"], [e["delta"] for e in frozen["entries"]]),
+                         (st0["closing_balance"], [e["delta"] for e in st0["entries"]]))
+        st1 = call("GET", "/statement", token=self.t["ada"])[1]
+        self.assertEqual(st1["closing_balance"], 8750)
+        self.assertEqual(call("GET", "/activity", token=self.t["ada"])[1]["payments"][-1]["amount"], 1000)
+        old = call("GET", "/me" + q(known_at=ts_after(b["recorded_at"], -1)), token=self.t["ada"])[1]
+        self.assertEqual(old["balance"], 8900)
+        # a correction by the operator is not limited to the operator's own payments, and single corrections of
+        # nonmembers still work; members cannot be corrected singly
+        self.assertEqual(corr(self.t["ada"], p1["payment_id"], "c", expected_revision=2, amount=800,
+                              effective_at=p1["created_at"], reason="x")[0], 201)
+        self.err(corr(self.t["ada"], sp["payments"][0]["payment_id"], "d", expected_revision=2, amount=1,
+                      effective_at=sp["committed_at"], reason="x"), 422, "linked_payment_immutable")
+
+    def test_auth_and_key(self):
+        p = pay(self.t["ada"], "bob", 100)
+        self.err(batch(None, [item(p, 50)]), 401, "unauthenticated")
+        self.err(batch(self.t["ada"], [item(p, 50)]), 403, "forbidden")
+        self.err(call("POST", "/correction-batches", {"corrections": [item(p, 50)]}, self.t["cy"]), 400,
+                 "missing_idempotency_key")
+        self.err(call("POST", "/correction-batches", None, self.t["cy"], "e"), 400, "malformed_request")
+
+    def test_validation(self):
+        p, p2 = pay(self.t["ada"], "bob", 100), pay(self.t["ada"], "bob", 200)
+        future = "2999-01-01T00:00:00+00:00"
+        for items in ([], [item(p, 1)] * 2, [item(p, 1)] + ["x"], [dict(item(p, 1), payment_id=5)],
+                      [{k: v for k, v in item(p, 1).items() if k != "payment_id"}]):
+            self.err(batch(self.t["cy"], items, "v"), 422, "validation_failed")
+        self.err(call("POST", "/correction-batches", {"corrections": "x"}, self.t["cy"], "v"), 422, "validation_failed")
+        self.err(call("POST", "/correction-batches", {}, self.t["cy"], "v"), 422, "validation_failed")
+        many = [dict(item(p, 1), payment_id="p_%d" % i) for i in range(33)]
+        self.err(batch(self.t["cy"], many, "v"), 422, "validation_failed")
+        for f, v in (("amount", -1), ("amount", 1.5), ("amount", 1_000_000_001), ("expected_revision", 0),
+                     ("reason", ""), ("reason", "x" * 201), ("effective_at", "2026-01-01"), ("effective_at", future)):
+            self.err(batch(self.t["cy"], [dict(item(p, 1), **{f: v})], "v"), 422, "validation_failed")
+        for f in ("expected_revision", "amount", "effective_at", "reason"):
+            self.err(batch(self.t["cy"], [{k: v for k, v in item(p, 1).items() if k != f}], "v"), 422,
+                     "validation_failed")
+        self.err(batch(self.t["cy"], [item(p, 1), dict(item(p2, 1), payment_id="p_nope")], "v"), 404, "not_found")
+        self.err(batch(self.t["cy"], [item(p, 1, rev=2)], "v"), 409, "stale_revision")
+        # item errors in input order
+        self.err(batch(self.t["cy"], [item(p, 1, rev=2), dict(item(p2, 1), payment_id="p_nope")], "v"), 409,
+                 "stale_revision")
+        self.err(batch(self.t["cy"], [dict(item(p2, 1), payment_id="p_nope"), item(p, 1, rev=2)], "v"), 404,
+                 "not_found")
+        # unknown fields ignored; then the same key still works (failures never claim it)
+        s, b, _ = call("POST", "/correction-batches", {"corrections": [dict(item(p, 1), extra=1)], "x": 2},
+                       self.t["cy"], "v")
+        self.assertEqual(s, 201, b)
+
+    def test_immutable_and_refund_floor(self):
+        p = pay(self.t["ada"], "bob", 1000)
+        r = refund(self.t["bob"], p["payment_id"], 300)[1]
+        h = call("POST", "/authorizations", {"to_handle": "bob", "amount": 100}, self.t["ada"], "h")[1]
+        c = call("POST", "/authorizations/%s/capture" % h["authorization_id"], {}, self.t["bob"], "c")[1]
+        self.err(batch(self.t["cy"], [item(r, 1)], "1"), 422, "linked_payment_immutable")
+        self.err(batch(self.t["cy"], [item(c, 1)], "2"), 422, "linked_payment_immutable")
+        self.err(batch(self.t["cy"], [item(p, 299)], "3"), 422, "refund_exceeds_payment")
+        self.assertEqual(batch(self.t["cy"], [item(p, 300)], "4")[0], 201)
+
+    def test_settlement_completeness_and_instants(self):
+        sp = self.settle()
+        a, b_ = sp["payments"]
+        when = sp["committed_at"]
+        self.err(batch(self.t["cy"], [item(a, 400, eff=when)], "1"), 422, "incomplete_settlement")
+        self.err(batch(self.t["cy"], [item(a, 400, eff=when), item(b_, 100, eff=ts_after(when, -1))], "2"), 422,
+                 "validation_failed")
+        # item errors come before completeness
+        self.err(batch(self.t["cy"], [item(a, 400, eff=when, rev=2)], "3"), 409, "stale_revision")
+        # same instant, different offset spelling
+        other = ts(when).astimezone(__import__("datetime").timezone(__import__("datetime").timedelta(hours=5, minutes=30)))
+        s, out, _ = batch(self.t["cy"], [item(a, 400, eff=when), item(b_, 100, eff=other.isoformat())], "4")
+        self.assertEqual(s, 201, out)
+        self.assertEqual(out["revisions"][1]["effective_at"], other.isoformat())
+        feed = {x["payment_id"]: x for x in call("GET", "/activity", token=self.t["ada"])[1]["payments"]}
+        self.assertEqual(feed[a["payment_id"]]["settlement_id"], sp["settlement_id"])
+
+    def test_combined_affordability_and_precedence(self):
+        # p: cy -> bob 500 (cy 0); q2: bob -> cy 400 (cy 400). Raising p to 1000 alone needs 500 (cy has 400);
+        # raising q2 to 500 in the same batch, effective at p's instant, makes the combination affordable.
+        p = pay(self.t["cy"], "bob", 500)
+        q2 = pay(self.t["bob"], "cy", 400)
+        self.err(batch(self.t["cy"], [item(p, 1000)], "1"), 409, "insufficient_funds")
+        s, b, _ = batch(self.t["cy"], [item(p, 1000), item(q2, 500, eff=p["created_at"])], "2")
+        self.assertEqual(s, 201, b)
+        self.assertEqual(balances(self.t), {"ada": 10000, "bob": 3000, "cy": 0})
+        # funds error precedes completeness? no: completeness first
+        sp = self.settle()
+        self.err(batch(self.t["cy"], [item(p, 5000, rev=2), item(sp["payments"][0], 1, eff=sp["committed_at"])],
+                       "3"), 422, "incomplete_settlement")
+
+    def test_historical_overdraft_and_atomicity(self):
+        p = pay(self.t["cy"], "bob", 500)           # cy 0
+        q2 = pay(self.t["bob"], "cy", 500)          # cy 500 (after p)
+        # moving q2 back to before p's time would not overdraw; moving p earlier... lower q2 to 0 and raise nothing:
+        # cy now 0 -> unaffordable now; instead make it affordable now but negative in the past:
+        # p raised to 900 effective at p (cy -400 at p's time), q2 raised to 900 (cy back to 0 now).
+        before = call("GET", "/statement", token=self.t["cy"])[1]
+        r = batch(self.t["cy"], [item(p, 900), item(q2, 900)], "1")
+        self.err(r, 409, "historical_overdraft")
+        self.assertEqual(balances(self.t), {"ada": 10000, "bob": 2500, "cy": 500})
+        after = call("GET", "/statement", token=self.t["cy"])[1]
+        self.assertEqual([e["delta"] for e in after["entries"]], [e["delta"] for e in before["entries"]])
+        self.assertEqual(len(call("GET", "/payments/%s/revisions" % p["payment_id"], token=self.t["cy"])[1]["revisions"]), 1)
+        # same key, a valid body: the failed attempt claimed nothing
+        s, b, _ = batch(self.t["cy"], [item(q2, 900, eff=p["created_at"]), item(p, 900)], "1")
+        self.assertEqual(s, 201, b)
+
+    def test_concurrent_batches_sharing_a_revision(self):
+        p = pay(self.t["ada"], "bob", 1000)
+        others = [pay(self.t["ada"], "bob", 10 + i, key="o%d" % i) for i in range(10)]
+        with ThreadPoolExecutor(10) as ex:
+            res = list(ex.map(lambda i: batch(self.t["cy"], [item(others[i], 0), item(p, 900 - i)], "c%d" % i)[0],
+                              range(10)))
+        self.assertEqual((res.count(201), res.count(409)), (1, 9))
+        revs = call("GET", "/payments/%s/revisions" % p["payment_id"], token=self.t["ada"])[1]["revisions"]
+        self.assertEqual(len(revs), 2)
+        with ThreadPoolExecutor(10) as ex:
+            res = list(ex.map(lambda i: (batch(self.t["cy"], [item(p, 800, rev=2)], "d%d" % i) if i % 2 else
+                                         corr(self.t["ada"], p["payment_id"], "e%d" % i, expected_revision=2,
+                                              amount=700, effective_at=p["created_at"], reason="x"))[0], range(10)))
+        self.assertEqual(res.count(201), 1, res)
+        self.assertEqual(sum(balances(self.t).values()), 13000)
+
+
+class Stage4Import(Base):
+    fx = staticmethod(lambda: fixture(ops=["u_cy"]))
+
+    def test_round_trip_with_refunds_batches_snapshots(self):
+        p = pay(self.t["ada"], "bob", 1000)
+        r = refund(self.t["bob"], p["payment_id"], 100)[1]
+        sp = call("POST", "/settlements", {"transfers": [{"from_handle": "ada", "to_handle": "bob", "amount": 50}]},
+                  self.t["cy"], "s")[1]
+        b = batch(self.t["cy"], [item(sp["payments"][0], 40, eff=sp["committed_at"]), item(p, 900)])[1]
+        st = call("GET", "/statement", token=self.t["ada"])[1]
+        exp = call("GET", "/_test/export")[1]
+        reset()
+        self.assertEqual(call("POST", "/_test/import", exp)[0], 204)
+        self.assertEqual(call("GET", "/statement" + q(snapshot=st["snapshot"]), token=self.t["ada"])[1]["entries"],
+                         st["entries"])
+        self.assertEqual(call("GET", "/statement", token=self.t["ada"])[1]["entries"], st["entries"])
+        self.err(refund(self.t["bob"], p["payment_id"], 801, "x"), 422, "refund_exceeds_payment")
+        self.err(refund(self.t["ada"], r["payment_id"], 1, "y"), 422, "invalid_refund_target")
+        self.err(batch(self.t["cy"], [item(p, 50, rev=2)], "z"), 422, "refund_exceeds_payment")
+        self.err(batch(self.t["cy"], [item(r, 50)], "z2"), 422, "linked_payment_immutable")
+        revs = call("GET", "/payments/%s/revisions" % p["payment_id"], token=self.t["ada"])[1]["revisions"]
+        self.assertEqual(revs[1]["correction_batch_id"], b["correction_batch_id"])
+        self.assertEqual(batch(self.t["cy"], [item(sp["payments"][0], 40, eff=sp["committed_at"]), item(p, 900)])[:2],
+                         (200, b))
+        nb = batch(self.t["cy"], [item(p, 800, rev=2)], "n")
+        self.assertEqual(nb[0], 201)
+        self.assertGreater(ts(nb[1]["recorded_at"]), ts(b["recorded_at"]))
+        self.assertNotEqual(nb[1]["correction_batch_id"], b["correction_batch_id"])
+
+    def test_stage3_export(self):
+        import os, subprocess, socket
+        here = os.path.dirname(os.path.abspath(__file__))
+        s3 = os.path.join(here, "..", "stage-3", "server.py")
+        if not os.path.exists(s3):
+            self.skipTest("stage-3 source not present")
+        sock = socket.socket(); sock.bind(("127.0.0.1", 0)); port = sock.getsockname()[1]; sock.close()
+        proc = subprocess.Popen([sys.executable, s3], env=dict(os.environ, PORT=str(port)), cwd=os.path.dirname(s3),
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        global HOST
+        saved = HOST
+        try:
+            HOST = "127.0.0.1:%d" % port
+            wait_healthy(HOST)
+            reset(fixture(ops=["u_cy"]))
+            ada, bob, cy = login("ada"), login("bob"), login("cy")
+            p = pay(ada, "bob", 1000)
+            c3 = corr(ada, p["payment_id"], "c", expected_revision=1, amount=700, effective_at=p["created_at"],
+                      reason="fix")[1]
+            sp = call("POST", "/settlements", {"transfers": [{"from_handle": "ada", "to_handle": "bob", "amount": 50},
+                                                             {"from_handle": "bob", "to_handle": "cy", "amount": 20}]},
+                      cy, "s")[1]
+            st = call("GET", "/statement", token=ada)[1]
+            exp = call("GET", "/_test/export")[1]
+        finally:
+            HOST = saved
+            proc.terminate(); proc.wait()
+        self.assertEqual(call("POST", "/_test/import", exp)[0], 204)
+        self.assertEqual(call("GET", "/statement" + q(snapshot=st["snapshot"]), token=ada)[1]["closing_balance"],
+                         st["closing_balance"])
+        self.assertEqual(me(ada)["balance"], 10000 - 700 - 50)
+        self.assertEqual(corr(ada, p["payment_id"], "c", expected_revision=1, amount=700, effective_at=p["created_at"],
+                              reason="fix")[:2], (200, c3))
+        self.assertIsNone(call("GET", "/activity", token=ada)[1]["payments"][0]["refund_of"])
+        self.err(batch(cy, [item(sp["payments"][0], 10, eff=sp["committed_at"])], "b"), 422, "incomplete_settlement")
+        ok = batch(cy, [item(sp["payments"][0], 10, eff=sp["committed_at"]),
+                        item(sp["payments"][1], 20, eff=sp["committed_at"])], "b2")
+        self.assertEqual(ok[0], 201, ok)
+        self.assertEqual(refund(bob, p["payment_id"], 700)[0], 201)
+        self.err(corr(ada, p["payment_id"], "c2", expected_revision=2, amount=699, effective_at=p["created_at"],
+                      reason="x"), 422, "refund_exceeds_payment")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

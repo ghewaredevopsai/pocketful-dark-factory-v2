@@ -34,7 +34,7 @@ The modeler's driver found the same defect independently in the 1→2→3 chain,
 `$.available: expected integer 5265, got 7199`. In the reproduced run, stage-2 hold `a_37` (1934, created 14:47:05.375,
 final-captured 14:47:05.556) is exported with `lifecycle.created = null`, and `/me?as_of=14:47:05.536` shows held 0.
 The divergence is timing-dependent on replay because capture timing varies. Seed 606 in the 2→3 chain diverged the
-same way (`available` too high); it was not reproduced in 13 replays and is probably the same class.
+same way (`available` too high); it diverged again in 1 of 18 replays (on a seeded hold, `available` too high) but was not captured with an export, so its class is not confirmed.
 
 Expected fix: reconstruct imported stage-2 holds from `created_at`, capture payments (`authorization_id` = the hold)
 and the close event (final capture time, `expires_at`, or for voids the latest known event, as the ledger says). The

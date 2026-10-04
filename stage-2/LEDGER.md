@@ -282,6 +282,16 @@ Status: `todo`, `done`, `n/a` (with reason). One line per normative statement.
 ## Stage 2 — Concurrency
 - R218 todo — Concurrent requests serialize to some one-at-a-time order; invariants hold at every read.
 
+## Added on coordinator review (msg 3b68e30d)
+- R219 todo — Stage-2 export/import round-trips authorizations (all statuses, captured_amount, payment_ids, expires_at), `authorization_ttl_seconds`, and authorize/capture idempotency records; replays after import return 200 with original bodies.
+- R220 todo — A stage-1 export (no authorizations/ttl) imports with empty authorizations, ttl 600, held 0.
+- R221 todo — Holds expire lazily by the clock, also right after import; `expires_at <= now` is expired; expiry releases the remainder exactly once (no double release on later capture/void).
+- R222 todo — Only `text/html` in Accept selects HTML on `/requests` and `/authorizations`; absent Accept, `application/json`, `*/*` get JSON; `/`, `/split`, `/signup`, `/login` served without a token (client-side gating).
+- R223 todo — Browser session token survives navigation between routes and a server-side import (same token strings).
+- R224 todo — UI lost-response retry re-sends the same Idempotency-Key and byte-equal body; a 200 replay is success.
+- R225 todo — Capture vs void vs expiry vs payment races never overspend (available never negative); each capture key moves money once; settlement net debit uses available.
+- R226 todo — `pay-visibility`/`authorize-visibility` default to public; UI amounts use the fixture's minor_units everywhere (JPY 0, BHD 3), incl. capture prefill and split preview.
+
 ## Stage-1 review findings fixed in stage 2
 - M1 todo — Every generated id (payment, request, split, settlement, authorization, user) never collides with any seeded or imported id.
 - M2 todo — Reset with 150 users with distinct passwords completes well under 10 s (target < 3 s): scrypt in parallel, per-record cost parameters stored with the hash.

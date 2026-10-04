@@ -457,7 +457,7 @@ class Run:
             closed = None
             if a["status"] == "voided" and "closed_at" in a["unk"]:
                 if m.stage >= 3 and isinstance(pb.get("closed_at"), str):
-                    w = (a["c"] / US, a["void_win"][1]) if a.get("void_win") else (lo, hi)  # R76
+                    w = a.get("void_win") or (lo, hi)  # R76
                     closed = self.win(pb["closed_at"], w[0], w[1], "closed_at")
                 elif m.stage < 3 and "void_win" not in a:  # stage 2 shows no closed_at: estimate, refine later
                     a["void_win"] = (lo, hi)
@@ -469,7 +469,7 @@ class Run:
                 a = S["auths"].get(aid)
                 if a and a["status"] == "voided" and "closed_at" in a["unk"] and a.get("void_win") \
                         and isinstance(it.get("closed_at"), str):
-                    w = (a["c"] / US, a["void_win"][1])  # R76: anywhere from creation to the void call
+                    w = a["void_win"]  # R76: inside the original void call
                     m.adopt_auth(aid, closed=self.win(it["closed_at"], w[0], w[1], "closed_at (legacy void)"))
 
     def explain(self, model, b, fn, pres):
@@ -634,7 +634,8 @@ class Run:
                     if a and a["status"] == "voided" and "closed_at" in a["unk"] and a.get("void_win") \
                             and isinstance(it.get("closed_at"), str):
                         try:
-                            v = self.win(it["closed_at"], a["c"] / US, a["void_win"][1], "closed_at (legacy void)")
+                            v = self.win(it["closed_at"], a["void_win"][0], a["void_win"][1],
+                                         "closed_at (hold voided before the upgrade)")
                         except Mismatch as e:
                             self.fail(i, op, str(e))
                         self.model.adopt_auth(aid, closed=v)
@@ -810,7 +811,7 @@ class Run:
 HANDLES = ["ada", "bob", "cy", "dee", "eve_9", "f_long_handle_name20"]
 
 
-def gen_fixture(rng, stage=3):
+def gen_fixture(rng, stage=3, ttl_override=None):
     """Seeded history is consistent and nonnegative: opening balances first, then seeded payments applied in
     created_at order (a payment the sender cannot afford at that point is dropped), ending balances seeded."""
     cur, mu = rng.choice([("EUR", 2), ("JPY", 0), ("BHD", 3)])
@@ -849,6 +850,8 @@ def gen_fixture(rng, stage=3):
     if stage < 2:
         return fx
     ttl = rng.choice([None, 600, 3, 5, 2, 600])
+    if ttl_override is not None:
+        ttl = ttl_override
     if ttl is not None:
         fx["authorization_ttl_seconds"] = ttl
     all_dated = all("created_at" in p for p in kept)
@@ -877,6 +880,7 @@ class Gen:
     def __init__(self, rng, run):
         self.rng, self.run, self.n = rng, run, 0
         self.hist = []  # idempotent ops generated so far
+        self.queue = []  # scripted scenarios: callables producing the next ops, run before random ones
 
     # helpers
     def key(self):
@@ -1364,7 +1368,105 @@ class Gen:
             ops = [self.write(self.rng.choice(live)) for _ in range(k)]
         return {"t": "burst", "ops": [o for o in ops if o]}
 
+    # ---- deterministic scenarios
+    def lifecycle(self):
+        """Stage-2 API holds closed three ways (final capture, void, clock expiry), so the stage-3 history of
+        each can be checked after the upgrade (scenario for reviewer finding B1)."""
+        m = self.run.model
+        cand = [u for u in self.live() if m.available(u) >= 3]
+        if not cand:
+            return
+        payer = max(cand, key=m.available)
+        to = next(u["handle"] for k, u in self.users().items() if k != payer)
+
+        def find(tag):
+            return next((a for a in self.run.model.s["auths"].values() if a["note"] == tag), None)
+
+        def authorize(tag):
+            op = self.call("POST", "/authorizations", payer, False, json.dumps({"to_handle": to, "amount": 1, "note": tag}))
+            op["key"] = f"{tag}-{self.n}"
+            return op
+
+        def capture():
+            a = find("lc-capture")
+            if a:
+                op = self.call("POST", "/authorizations/{ref}/capture", a["to_user_id"], False, "{}",
+                               ref=a["authorization_id"], refns="a")
+                op["key"] = f"lc-cap-{self.n}"
+                return op
+
+        def void():
+            a = find("lc-void")
+            return a and self.call("POST", "/authorizations/{ref}/void", a["from_user_id"],
+                                   ref=a["authorization_id"], refns="a")
+        self.queue += [lambda: authorize("lc-capture"), lambda: authorize("lc-void"), lambda: authorize("lc-expire"),
+                       capture, void, lambda: {"t": "sleep", "s": self.run.model.s["ttl"] + 1.5}]
+
+    def lifecycle_check(self):
+        """After the upgrade: /me as_of just inside each closed hold's lifetime, plus the time-travel property."""
+        def go():
+            views = [[["ev", ["a", a["authorization_id"], "c"], 1, 0], None]
+                     for a in self.run.model.s["auths"].values() if a["note"] in ("lc-capture", "lc-void", "lc-expire")]
+            return {"t": "travel", "views": views} if views else None
+        self.queue.append(go)
+
+    def on_upgrade(self, op):
+        if op["to"] == 2:
+            self.lifecycle()
+        elif op["to"] == 3:
+            self.lifecycle_check()
+
+    def snapstab(self, uid):
+        """Freeze a statement, change history under it (a correction of one of its payments, a payment, a capture
+        or void), then page the snapshot one entry at a time and in full: every page must equal the frozen
+        first read field by field (scenario for reviewer finding F3)."""
+        first = self.call("GET", "/statement", uid, query="limit=200")
+        state = {}
+
+        def snap_tok():
+            mine = [t for t, s in self.run.model.snaps.items() if s["uid"] == uid]
+            state["tok"] = mine[-1] if mine else None
+            return state["tok"]
+
+        def correct():
+            tok = snap_tok()
+            if not tok:
+                return None
+            S = self.run.model.s
+            ps = [S["payments"][e["payment"]["payment_id"]] for e in self.run.model.snaps[tok]["entries"]]
+            ps = [p for p in ps if not p["settlement_id"] and not p.get("authorization_id")
+                  and self.run.live_session(p["from_user_id"])]
+            if not ps:
+                return None
+            p = self.rng.choice(ps)
+            prev, n = p["revs"][-1]["amount"], len(p["revs"])
+            amt = prev - 1 if prev >= 1 and self.run.model.available(p["to_user_id"]) >= 1 else prev + 1
+            ref = ["p", p["payment_id"]] if n == 1 else ["r", p["payment_id"], n]
+            op = self.call("POST", "/payments/{ref}/corrections", p["from_user_id"], False,
+                           json.dumps({"expected_revision": n, "amount": amt, "reason": "snapshot stability",
+                                       "effective_at": "@eff@"}), ref=p["payment_id"], refns="p",
+                           inst={"eff": ["ev", ref, 0, 0]})
+            op["key"] = f"ss-{self.n}"
+            self.n += 1
+            return op
+
+        def page(limit, offset):
+            def f():
+                tok = state.get("tok")
+                if not tok or tok not in self.run.model.snaps:
+                    return None
+                return self.call("GET", "/statement", uid, query=f"snapshot=@SNAP@&limit={limit}&offset={offset}",
+                                 snap=tok)
+            return f
+        n_est = 6
+        self.queue += [lambda: first, correct, lambda: self.payment(uid), lambda: self.capture(),
+                       lambda: self.void(), correct]
+        self.queue += [page(1, k) for k in range(n_est)] + [page(200, 0), page(2, 1)]
+        return None
+
     def next(self):
+        if self.queue:
+            return self.queue.pop(0)()
         live = self.live()
         uid = self.rng.choice(live)
         table = [(17, lambda: self.payment(uid)), (10, lambda: self.request(uid)), (10, self.pay),
@@ -1383,6 +1485,7 @@ class Gen:
                       (6 if short else 0, lambda: {"t": "sleep", "s": round(self.rng.uniform(0.5, 3), 2)})]
         if self.run.model.stage >= 3:
             table += [(16, self.correction), (8, lambda: self.statement(uid)), (5, self.snap_page),
+                      (3, lambda: self.snapstab(uid)),
                       (6, lambda: self.me_t(uid)), (3, self.revisions), (2.5, self.travel)]
         x = self.rng.uniform(0, sum(w for w, _ in table))
         for w, f in table:
@@ -1466,10 +1569,12 @@ def run_seed(bases, seed, steps):
         ups[steps * (n + 1) // len(chain)] = {"t": "upgrade", "from": a, "to": b}
     run.start(chain[0])
     gen = Gen(rng, run)
-    ops = [{"t": "reset", "fixture": gen_fixture(rng, stage=chain[0])}]
+    ops = [{"t": "reset", "fixture": gen_fixture(rng, stage=chain[0], ttl_override=3 if 2 in chain[:-1] else None)}]
     counts = {"steps": 0, "calls": 0, "bursts": 0, "travel": 0}
     try:
         run.step(0, ops[0])
+        if chain[0] == 2:
+            gen.lifecycle()
         for i in range(1, steps + 1):
             op = ups.get(i) or gen.next()
             if op is None:
@@ -1480,6 +1585,8 @@ def run_seed(bases, seed, steps):
             counts["travel"] += op["t"] == "travel"
             counts["calls"] += len(op["ops"]) if op["t"] == "burst" else 1
             run.step(len(ops) - 1, op)
+            if op["t"] == "upgrade":
+                gen.on_upgrade(op)
     except Divergence as d:
         return d.info, ops, counts
     return None, ops, counts

@@ -347,13 +347,22 @@ R75. A stage-3 service must import its own stage-1 and stage-2 exports (204). Th
 original amount at its original `created_at`. Settlement members and captures stay immutable. Holds keep
 their creation and capture instants.
 
-R76. Holds voided before the upgrade (stage 2 exposed no void instant): after the upgrade `closed_at` may be
-null or any instant from the hold's creation to the end of the original void call; when it is an instant the
-model adopts it (and so its historical held). Reading taken leniently because a stage-2 export need not carry
-the void instant; a value before the void call is reported as an observation (information lost on import),
-not a divergence.
+R76. Holds closed on stage 2 (final capture, void, clock expiry) keep their history after the upgrade: they
+hold funds from creation until the closing event. A capture's instant is its payment's `created_at`, an
+expiry's is `expires_at`, and a void's `closed_at` must lie inside the original void call's window ± 1 s.
+Stage 2 never showed that instant, so the driver bounds it by the call window and adopts the stage-3 value.
+*(Revised after reviewer finding B1: an earlier version also accepted any instant from creation onward.)*
+Deterministic check: every chain run that passes through stage 2 sets the TTL to 3 s. It authorizes three
+holds and closes them by final capture, void and expiry. After the upgrade it reads `/me?as_of=created+1µs`
+for each hold and runs the time-travel property there.
 
 ## Concurrency and snapshots
+
+R77a. Snapshot stability (scenario `snapstab`, reviewer finding F3): a first statement read with limit 200,
+then a correction of one of its payments, a payment, a capture, a void and another correction, then the
+snapshot paged one entry at a time and in full. Every page is compared field by field with the frozen
+first read: `payment.amount`, `revision`, `effective_at`, `recorded_at`, `delta`, `balance_after`,
+opening/closing and `has_more`.
 
 R77. Corrections racing on one `expected_revision` are linearized like every other burst, so at most one
 succeeds and the others give `stale_revision`. Snapshot pages read inside a burst must equal the frozen

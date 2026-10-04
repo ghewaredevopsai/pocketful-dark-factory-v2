@@ -951,6 +951,9 @@ class Model:
                 meta = {"or_err": {VAL}, "snapshot": token}
         ents = snap["entries"]
         page = copy.deepcopy(ents[offset:offset + limit])
+        if self.bug == "snapshot_live_amount" and "snapshot" in q:  # F3: amount follows the live revision
+            for e in page:
+                e["payment"]["amount"] = self.s["payments"][e["payment"]["payment_id"]]["revs"][-1]["amount"]
         if self.bug == "stmt_page_balance" and offset:
             run = snap["opening"]
             for e in page:

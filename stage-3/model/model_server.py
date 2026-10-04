@@ -4,7 +4,7 @@
   PORT=18091 MODEL_BUG=private_leak python3 model_server.py   # fault injection, driver must catch it
   bugs: private_leak | overdraft | replay_reexecutes | held_ignored | no_expiry | capture_closed
         | no_hist_check | asof_exclusive | stmt_page_balance | snapshot_live | known_at_ignored
-        | linked_mutable | stale_ignored
+        | linked_mutable | stale_ignored | snapshot_live_amount
   MODEL_STAGE=1|2 serves earlier stages' shapes (targets for --stage1-base / --stage2-base)
 """
 import json

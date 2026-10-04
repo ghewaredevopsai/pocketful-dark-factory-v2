@@ -35,6 +35,9 @@ or at reset, seeded requests, operators, seeded holds — some with `created_at`
 - bursts: same-expected-revision correction races, snapshot pages during payments and corrections, hold
   races, drains and identical retries;
 - export/import, bad resets (including a future seeded `created_at`), and `travel` steps.
+- deterministic scenarios: `snapstab` (snapshot stability under corrections, payments, captures and voids, R77a) and,
+  in every chain through stage 2, `lifecycle` (holds closed by final capture, void and expiry on stage 2, checked
+  inside their lifetimes after the upgrade, R76).
 
 Query instants are drawn from real event instants ± 1 µs/1 ms/1 s/1 h, in several offsets, plus far past and
 far future.
@@ -59,8 +62,8 @@ JSON. Exit code 1 if any seed diverged.
 cd stage-3/model
 PORT=18390 python3 model_server.py &                                  # faithful: expect 0 divergences
 PORT=18391 MODEL_BUG=no_hist_check python3 model_server.py &          # fault injection, driver must catch it
-#   stage 3: no_hist_check asof_exclusive stmt_page_balance snapshot_live known_at_ignored linked_mutable
-#            stale_ignored;  earlier: held_ignored no_expiry capture_closed private_leak overdraft replay_reexecutes
+#   stage 3: no_hist_check asof_exclusive stmt_page_balance snapshot_live snapshot_live_amount known_at_ignored
+#            linked_mutable stale_ignored;  earlier: held_ignored no_expiry capture_closed private_leak overdraft replay_reexecutes
 PORT=18381 MODEL_STAGE=1 python3 model_server.py &                    # targets for --stage1-base / --stage2-base
 PORT=18382 MODEL_STAGE=2 python3 model_server.py &
 python3 driver.py --base http://127.0.0.1:18390 --seeds 1-12 --steps 150

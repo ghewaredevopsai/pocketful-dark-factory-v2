@@ -1050,6 +1050,11 @@ def ts_after(iso_text, micro):
     return (datetime.datetime.fromisoformat(iso_text) + datetime.timedelta(microseconds=micro)).isoformat()
 
 
+def ts(iso_text):
+    import datetime
+    return datetime.datetime.fromisoformat(iso_text)
+
+
 def corr(tok, pid, key="c", **body):
     return call("POST", "/payments/%s/corrections" % pid, body, tok, key)
 
@@ -1579,6 +1584,57 @@ class Stage2ClosedHoldHistory(Stage2ImportHolds):
         self.assertEqual(self.triple(tok, h["created_at"]), (10000, 500, 9500))
         self.assertEqual(self.triple(tok, ts_after(h["expires_at"], -1)), (10000, 500, 9500))
         self.assertEqual(self.triple(tok, h["expires_at"]), (10000, 0, 10000))
+
+
+
+@unittest.skipUnless("server" in globals(), "needs the in-process server (patches its clock)")
+class OneInstantPerWrite(Base):
+    """Review B2: expiry, validation and the recorded instant of a write are one instant. A clock that jumps
+    0.4 s per reading puts a hold's deadline between any two readings a write could take."""
+
+    def stepping_clock(self):
+        real, start, n = server.now_dt, server.now_dt(), [0]
+
+        def fake():
+            n[0] += 1
+            return start + server.datetime.timedelta(seconds=0.4 * n[0])
+        server.now_dt = fake
+        self.addCleanup(setattr, server, "now_dt", real)
+
+    def test_no_capture_at_or_after_expires_at(self):
+        reset(dict(fixture(), authorization_ttl_seconds=1))
+        ada, bob = login("ada"), login("bob")
+        self.stepping_clock()
+        h = call("POST", "/authorizations", {"to_handle": "bob", "amount": 1000}, ada, "h")[1]
+        caps = []
+        for i in range(10):
+            r = call("POST", "/authorizations/%s/capture" % h["authorization_id"],
+                     {"amount": 10, "final": False}, bob, "c%d" % i)
+            st, out = r[0], r[1]
+            if st != 201:
+                self.err(r, 409, "authorization_expired")
+                break
+            caps.append(out)
+        self.assertTrue(caps)
+        for c in caps:
+            self.assertLess(ts(c["created_at"]), ts(h["expires_at"]))
+        got = call("GET", "/authorizations", token=ada)[1]["authorizations"][0]
+        self.assertEqual((got["status"], got["closed_at"], got["captured_amount"]),
+                         ("expired", h["expires_at"], 10 * len(caps)))
+
+    def test_no_void_at_or_after_expires_at(self):
+        reset(dict(fixture(), authorization_ttl_seconds=1))
+        ada = login("ada")
+        self.stepping_clock()
+        h = call("POST", "/authorizations", {"to_handle": "bob", "amount": 1000}, ada, "h")[1]
+        st, out = call("POST", "/authorizations/%s/void" % h["authorization_id"], token=ada)[:2]
+        if st == 200:
+            self.assertEqual(out["status"], "voided")
+            self.assertLess(ts(out["closed_at"]), ts(h["expires_at"]))
+        else:
+            self.assertEqual(st, 409)
+            got = call("GET", "/authorizations", token=ada)[1]["authorizations"][0]
+            self.assertEqual((got["status"], got["closed_at"]), ("expired", h["expires_at"]))
 
 
 if __name__ == "__main__":

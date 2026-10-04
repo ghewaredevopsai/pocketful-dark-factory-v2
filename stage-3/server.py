@@ -257,6 +257,7 @@ class State:
         self.snapshots = {}        # statement snapshot token -> {"uid", "result"}
         self.seq = 0
         self.last_ts = None
+        self.op_ts = None          # the one instant of the locked write in progress (taken by begin_op)
 
     # ids and clock
     def next_seq(self):
@@ -270,7 +271,20 @@ class State:
                 self.used.add(i)
                 return i
 
+    def begin_op(self):
+        """Take the single instant of a locked write: expiry, validation and the recorded time all use it."""
+        self.op_ts = self.stamp()
+        self.expire(self.op_ts)
+
+    def end_op(self):
+        self.op_ts = None
+
+    def now(self):
+        return self.op_ts or now_dt()
+
     def stamp(self):
+        if self.op_ts is not None:
+            return self.op_ts
         t = now_dt()
         if self.last_ts is not None and t <= self.last_ts:
             t = self.last_ts + datetime.timedelta(microseconds=1)
@@ -296,11 +310,11 @@ class State:
                 "effective_at": r["effective_at"], "recorded_at": r["recorded_at"], "reason": r["reason"]}
 
     # holds
-    def expire(self):
+    def expire(self, now=None):
         """Close every open authorization whose expires_at is at or before now (lazy clock expiry)."""
         if not self.open_auths:
             return
-        now = now_dt()
+        now = now or now_dt()
         for a in [a for a in self.open_auths.values() if a["_exp"] <= now]:
             self.close_auth(a, "expired")
 
@@ -1018,7 +1032,7 @@ def h_correction(st, user, q, body, pid):
     if not isinstance(reason, str) or not 1 <= len(reason) <= 200:
         raise invalid("reason must be a string of 1 to 200 characters")
     eff, eff_text = instant(body["effective_at"], "effective_at")
-    if eff > now_dt():
+    if eff > st.now():
         raise invalid("effective_at must not be later than now")
     current = p["_revs"][-1]
     if expected != current["revision"]:
@@ -1493,23 +1507,34 @@ class Handler(BaseHTTPRequestHandler):
             if uid is None:
                 raise ApiError(401, "unauthenticated", "missing or unknown bearer token")
             user = st.users[uid]
-            st.expire()
-            if not idem:
+            if method == "GET":
+                st.expire()
                 status, out = fn(st, user, q, body, *args)
                 return self.send(status, out)
-            if fn is h_settlement and uid not in st.operators:
-                raise ApiError(403, "forbidden", "not a settlement operator")
-            k = "%s\x00%s\x00%s" % (uid, path, key)
-            c = canon_str(body)
-            rec = st.idem.get(k)
-            if rec is not None:
-                if rec["canon"] != c:
-                    raise ApiError(409, "idempotency_key_reuse", "key already used with a different body")
-                return self.send(200, raw=rec["response"].encode("utf-8"))
+            st.begin_op()
+            try:
+                return self.write_op(st, user, uid, path, key, idem, fn, q, body, args)
+            finally:
+                st.end_op()
+
+    def write_op(self, st, user, uid, path, key, idem, fn, q, body, args):
+        """A state-changing request, under LOCK, with st.op_ts as its one instant."""
+        if not idem:
             status, out = fn(st, user, q, body, *args)
-            resp = json.dumps(out, ensure_ascii=False)
-            st.idem[k] = {"canon": c, "response": resp}
-            return self.send(status, raw=resp.encode("utf-8"))
+            return self.send(status, out)
+        if fn is h_settlement and uid not in st.operators:
+            raise ApiError(403, "forbidden", "not a settlement operator")
+        k = "%s\x00%s\x00%s" % (uid, path, key)
+        c = canon_str(body)
+        rec = st.idem.get(k)
+        if rec is not None:
+            if rec["canon"] != c:
+                raise ApiError(409, "idempotency_key_reuse", "key already used with a different body")
+            return self.send(200, raw=rec["response"].encode("utf-8"))
+        status, out = fn(st, user, q, body, *args)
+        resp = json.dumps(out, ensure_ascii=False)
+        st.idem[k] = {"canon": c, "response": resp}
+        return self.send(status, raw=resp.encode("utf-8"))
 
     def bearer(self):
         h = self.headers.get("Authorization") or ""

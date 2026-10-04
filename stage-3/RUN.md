@@ -26,7 +26,8 @@ single serialization point: every read and every read-modify-write of balances, 
 idempotency records happens while it is held, so the idempotency claim, the balance check and the money movement
 of a write are one atomic step and concurrent retries resolve to exactly one effect. Password hashing (scrypt)
 runs outside the lock. Amounts are parsed from JSON as `Decimal` and stored as Python `int`; no floating point
-touches money. All instants come from one UTC clock with microsecond precision, forced strictly increasing.
+touches money. All instants come from one UTC clock with microsecond precision, forced strictly increasing. Each write
+takes exactly one instant inside the lock; hold expiry, clock checks and the recorded time all use that instant.
 
 Holds: every user carries `held`, the sum of the uncaptured remainders of their open authorizations, so
 `available = balance - held`. Every funds check (payments, request pay, authorizations, settlement net debits)

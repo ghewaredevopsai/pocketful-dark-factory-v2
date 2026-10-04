@@ -422,3 +422,6 @@ Status: `todo`, `done`, `n/a` (with reason). One line per normative statement.
 ## Serialization point
 One process, one in-memory store, one `threading.Lock` held for the full duration of every state read-modify-write
 (and every snapshot read). That lock is the single serialization point; see `RUN.md`.
+Each write takes one instant inside the lock (`State.begin_op`): clock expiry, every validation against the clock
+(capture/void of a hold at or past `expires_at`, a correction's `effective_at` ≤ now) and the recorded instant all use
+it, so no event can be recorded at or after a deadline it was validated before (review B2).

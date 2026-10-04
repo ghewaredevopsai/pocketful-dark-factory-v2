@@ -567,19 +567,27 @@ def lifecycle_in(st, a, lc, need):
             a["_caps"].append((parse_ts(t), integral(amt)))
         a["_close"] = parse_ts(lc["close"]) if lc.get("close") is not None else None
     else:
-        # Stage-1/2 export: no lifecycle. Only a hold still open now, whose deadline is after its creation, is
-        # reconstructed (creation + capture payments). An already-closed hold may have been seeded closed and
-        # never held anything, so it contributes nothing to any historical view.
-        a["_ct"], a["_init"] = None, 0
-        if a["status"] == "open" and a["_exp"] > a["_ts"]:
-            a["_ct"], a["_init"] = a["_ts"], a["amount"]
-            for pid in a["payment_ids"]:
-                p = st.payment_ids.get(pid)
-                need(p is not None, "capture payment")
-                a["_caps"].append((p["_ts"], p["amount"]))
-        elif a["status"] in ("captured", "voided"):
-            caps = [st.payment_ids[pid]["_ts"] for pid in a["payment_ids"] if pid in st.payment_ids]
-            a["_close"] = max([a["_ts"]] + caps)  # closed_at = latest known event
+        # Stage-1/2 export: no lifecycle recorded. Rebuild it from created_at, the capture payments and the close:
+        #   captured -> the last capture; voided -> the latest known event (void time is unknown); expired ->
+        #   expires_at; open -> still open. A hold seeded closed never held anything: its close (seeded capture
+        #   payments, or created_at itself) is not after its creation, so hold_events ignores it. A hold marked
+        #   expired whose deadline is still in the future cannot have expired by the clock, so it was seeded
+        #   expired and holds nothing either. Captured amounts not explained by later capture payments were
+        #   captured before creation (seeded) and reduce the initial hold.
+        found = []
+        for pid in a["payment_ids"]:
+            p = st.payment_ids.get(pid)
+            need(p is not None or a["status"] != "open", "capture payment")
+            if p is not None:
+                found.append((p["_ts"], p["amount"]))
+        later = [(t, amt) for t, amt in found if t > a["_ts"]]
+        a["_ct"] = a["_ts"]
+        a["_init"] = a["amount"] - (a["captured_amount"] - sum(amt for _, amt in later))
+        a["_caps"] = later
+        if a["status"] in ("captured", "voided"):
+            a["_close"] = max([a["_ts"]] + [t for t, _ in found])
+        elif a["status"] == "expired" and a["_exp"] > now_dt():
+            a["_ct"], a["_init"], a["_caps"] = None, 0, []
     if a.get("closed_at") is None and a["status"] != "open":
         a["closed_at"] = a["expires_at"] if a["status"] == "expired" else iso(a["_close"] or a["_ts"])
     if a["status"] == "open":

@@ -388,8 +388,14 @@ Status: `todo`, `done`, `n/a` (with reason). One line per normative statement.
 - Default `to` and the default `as_of` for known_at-only reads are the request start (never before the last recorded
   instant).
 - Seeded closed holds have no lifecycle (hold nothing in any historical view); their `closed_at` is `expires_at` when
-  expired, else reset time. Stage-2 exports' holds get their lifecycle from creation time and capture payments; a
-  voided hold from a stage-2 export closes at its latest known event.
+  expired, else reset time.
+- Import of a stage-1/2 export (no lifecycle recorded), after review B1 and rulings D2–D4: every hold is rebuilt from
+  `created_at`, its capture payments and its close — captured: the last capture; voided: the latest known event
+  (the void time is not in the export); expired: `expires_at`; open: still open. A hold whose close or deadline is not
+  after its creation contributes nothing and held is never negative (covers seeded captured/voided holds and D3).
+  A hold marked `expired` whose `expires_at` is still in the future at import cannot have expired by the clock, so it
+  was seeded expired and contributes nothing (D2). Captured amounts not explained by capture payments after
+  creation were captured before creation (seeded) and reduce the initial hold.
 - Snapshot tokens survive export/import; reset clears them.
 - An unencoded `+` in an instant query value (arrives as a space) is accepted as `+`.
 

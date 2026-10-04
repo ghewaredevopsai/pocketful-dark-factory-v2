@@ -1510,5 +1510,76 @@ class Stage2ImportHolds(unittest.TestCase):
         self.assertEqual(me(tok)["held"], 100)
 
 
+class Stage2ClosedHoldHistory(Stage2ImportHolds):
+    """Regression (reviewer B1, c61cec17): holds created through the stage-2 API and closed before the upgrade keep
+    their history after import: creation, captures, then final capture / void (latest known event) / expiry."""
+
+    def scenario(self, ttl, acts):
+        fx = dict(fixture(users=[user("ada", 10000), user("bob", 0), user("cy", 0)]), authorization_ttl_seconds=ttl)
+        exp, out = self.stage2_export(fx, acts)
+        self.assertEqual(call("POST", "/_test/import", exp)[0], 204)
+        return login("ada"), out
+
+    def triple(self, tok, at):
+        m = list(self.views(tok, [at]))[0]
+        return (m["total"], m["held"], m["available"])
+
+    def test_final_captured_hold(self):
+        def acts():
+            ada, bob = login("ada"), login("bob")
+            h = call("POST", "/authorizations", {"to_handle": "bob", "amount": 1000}, ada, "h")[1]
+            c = call("POST", "/authorizations/%s/capture" % h["authorization_id"], {"amount": 300}, bob, "c")[1]
+            return h, c
+        tok, (h, c) = self.scenario(600, acts)
+        self.assertEqual(self.triple(tok, ts_after(h["created_at"], -1)), (10000, 0, 10000))
+        self.assertEqual(self.triple(tok, h["created_at"]), (10000, 1000, 9000))
+        self.assertEqual(self.triple(tok, ts_after(c["created_at"], -1)), (10000, 1000, 9000))
+        self.assertEqual(self.triple(tok, c["created_at"]), (9700, 0, 9700))
+        got = call("GET", "/authorizations", token=tok)[1]["authorizations"][0]
+        self.assertEqual(got["closed_at"], c["created_at"])
+
+    def test_voided_after_nonfinal_capture(self):
+        def acts():
+            ada, bob = login("ada"), login("bob")
+            h = call("POST", "/authorizations", {"to_handle": "bob", "amount": 400}, ada, "h")[1]
+            c = call("POST", "/authorizations/%s/capture" % h["authorization_id"], {"amount": 100, "final": False},
+                     bob, "c")[1]
+            call("POST", "/authorizations/%s/void" % h["authorization_id"], None, ada)
+            return h, c
+        tok, (h, c) = self.scenario(600, acts)
+        self.assertEqual(self.triple(tok, h["created_at"]), (10000, 400, 9600))
+        self.assertEqual(self.triple(tok, ts_after(c["created_at"], -1)), (10000, 400, 9600))
+        self.assertEqual(self.triple(tok, iso_in(0)), (9900, 0, 9900))
+
+    def test_two_nonfinal_captures_then_void(self):
+        def acts():
+            ada, bob = login("ada"), login("bob")
+            h = call("POST", "/authorizations", {"to_handle": "bob", "amount": 500}, ada, "h")[1]
+            path = "/authorizations/%s/capture" % h["authorization_id"]
+            c1 = call("POST", path, {"amount": 100, "final": False}, bob, "c1")[1]
+            c2 = call("POST", path, {"amount": 50, "final": False}, bob, "c2")[1]
+            call("POST", "/authorizations/%s/void" % h["authorization_id"], None, ada)
+            return h, c1, c2
+        tok, (h, c1, c2) = self.scenario(600, acts)
+        self.assertEqual(self.triple(tok, h["created_at"]), (10000, 500, 9500))
+        self.assertEqual(self.triple(tok, c1["created_at"]), (9900, 400, 9500))
+        self.assertEqual(self.triple(tok, ts_after(c2["created_at"], -1)), (9900, 400, 9500))
+        self.assertEqual(self.triple(tok, c2["created_at"]), (9850, 0, 9850))  # void time unknown: latest event
+
+    def test_expired_by_clock(self):
+        import time
+
+        def acts():
+            ada = login("ada")
+            h = call("POST", "/authorizations", {"to_handle": "bob", "amount": 500}, ada, "h")[1]
+            time.sleep(2.2)
+            self.assertEqual(call("GET", "/authorizations", token=ada)[1]["authorizations"][0]["status"], "expired")
+            return h
+        tok, h = self.scenario(2, acts)
+        self.assertEqual(self.triple(tok, h["created_at"]), (10000, 500, 9500))
+        self.assertEqual(self.triple(tok, ts_after(h["expires_at"], -1)), (10000, 500, 9500))
+        self.assertEqual(self.triple(tok, h["expires_at"]), (10000, 0, 10000))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

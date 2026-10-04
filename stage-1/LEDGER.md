@@ -162,6 +162,9 @@ Status: `todo`, `done`, `n/a` (with reason). One line per normative statement.
 - In `/settlements`, a non-string handle inside a transfer is 422 `validation_failed` (malformed batch shape), and the operator check (403) precedes the Idempotency-Key check.
 - Fixture records without `created_at` take increasing instants in fixture order (last listed = newest); a fixture `created_at`, if given, is used.
 - Email uniqueness and login are case-insensitive; the derived handle lowercases ASCII letters and maps every other non-`[a-z0-9_]` character to `_`.
+- Empty request body (ruling fd77ec53): unparseable → 400 `malformed_request` on every JSON endpoint, as is a body
+  that parses to a non-object. Exception: `POST /requests/{id}/pay`, whose body is optional, treats an empty body as
+  `{}`; for idempotency it is the same value as `{}` (not distinct). decline/cancel ignore their body.
 - Idempotency scope is (user, path, key); "same body" compares parsed JSON values exactly (`1000` = `1000.0` = `1e3`; `true` ≠ `1`).
 
 ## Serialization point

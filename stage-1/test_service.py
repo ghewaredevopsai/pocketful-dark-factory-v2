@@ -206,6 +206,37 @@ class Auth(Base):
         self.assertLess(time.time() - t0, 5)
 
 
+class EmptyBody(Base):
+    """Regression: an empty or non-object body is 400 malformed_request (ruling fd77ec53)."""
+
+    def test_empty_and_non_object_bodies(self):
+        a, op = self.t["ada"], self.t["ada"]
+        rq = call("POST", "/requests", {"payer_handle": "ada", "amount": 5}, self.t["bob"], "r")[1]
+        authed = ["/payments", "/requests", "/splits", "/settlements"]
+        public = ["/auth/signup", "/auth/login", "/_test/reset", "/_test/import"]
+        for raw in (b"", b"[]", b"5", b"null", b'"x"'):
+            for path in authed:
+                with self.subTest(path=path, raw=raw):
+                    s, b, _ = call("POST", path, raw=raw, token=a, key="k1",
+                                   headers={"Content-Type": "application/json"})
+                    if path == "/settlements":
+                        self.assertIn(s, (400, 403))  # ada is not an operator here
+                    else:
+                        self.err((s, b, None), 400, "malformed_request")
+            for path in public:
+                with self.subTest(path=path, raw=raw):
+                    self.err(call("POST", path, raw=raw), 400, "malformed_request")
+            if raw:
+                self.err(call("POST", "/requests/%s/pay" % rq["request_id"], raw=raw, token=a, key="k1"),
+                         400, "malformed_request")
+        self.assertEqual(balances(self.t), {"ada": 10000, "bob": 2500, "cy": 500})
+        # pay's body is optional: empty is {} (same value as {} for idempotency)
+        path = "/requests/%s/pay" % rq["request_id"]
+        s1, p1, _ = call("POST", path, raw=b"", token=a, key="P")
+        s2, p2, _ = call("POST", path, {}, a, "P")
+        self.assertEqual((s1, s2, p1["visibility"], p1), (201, 200, "public", p2))
+
+
 class Payments(Base):
     def test_payment_body_and_balances(self):
         s, p, _ = call("POST", "/payments", {"to_handle": "bob", "amount": 1500, "note": "dinner",

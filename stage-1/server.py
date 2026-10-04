@@ -69,10 +69,15 @@ def _reject_constant(name):
     raise ValueError(name)
 
 
-def parse_json(raw):
-    """Parse a request body. Numbers become Decimal (exact); NaN/Infinity are rejected."""
+def parse_json(raw, empty_ok=False):
+    """Parse a request body. Numbers become Decimal (exact); NaN/Infinity are rejected.
+
+    An empty body is unparseable (400) unless the endpoint's body is optional (empty_ok).
+    """
     if raw.strip() == b"":
-        return {}
+        if empty_ok:
+            return {}
+        raise bad("body is empty")
     try:
         text = raw.decode("utf-8")
         return json.loads(text, parse_float=Decimal, parse_int=Decimal,
@@ -833,7 +838,7 @@ class Handler(BaseHTTPRequestHandler):
                 raise ApiError(400, "missing_idempotency_key", "Idempotency-Key header is required")
             if len(key) > 255:
                 raise invalid("Idempotency-Key is longer than 255 characters")
-        body = parse_json(raw) if idem else {}
+        body = parse_json(raw, empty_ok=fn is h_pay) if idem else {}
         if not isinstance(body, dict):
             raise bad("body must be a JSON object")
         with LOCK:

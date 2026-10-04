@@ -1399,8 +1399,9 @@ class Gen:
             a = find("lc-void")
             return a and self.call("POST", "/authorizations/{ref}/void", a["from_user_id"],
                                    ref=a["authorization_id"], refns="a")
-        self.queue += [lambda: authorize("lc-capture"), lambda: authorize("lc-void"), lambda: authorize("lc-expire"),
-                       capture, void, lambda: {"t": "sleep", "s": self.run.model.s["ttl"] + 1.5}]
+        self.queue += [lambda: authorize("lc-capture"), lambda: authorize("lc-void"), capture, void]
+        if m.s["ttl"] <= 10:  # a stage-1 export carries no TTL (600 s after import), so 1->2->3 skips the expiry case
+            self.queue += [lambda: authorize("lc-expire"), lambda: {"t": "sleep", "s": self.run.model.s["ttl"] + 1.5}]
 
     def lifecycle_check(self):
         """After the upgrade: /me as_of just inside each closed hold's lifetime, plus the time-travel property."""

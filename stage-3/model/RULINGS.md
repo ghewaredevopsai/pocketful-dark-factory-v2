@@ -353,7 +353,7 @@ expiry's is `expires_at`, and a void's `closed_at` must lie inside the original 
 Stage 2 never showed that instant, so the driver bounds it by the call window and adopts the stage-3 value.
 *(Revised after reviewer finding B1: an earlier version also accepted any instant from creation onward.)*
 Deterministic check: every chain run that passes through stage 2 sets the TTL to 3 s. It authorizes three
-holds and closes them by final capture, void and expiry. After the upgrade it reads `/me?as_of=created+1µs`
+holds and closes them by final capture, void and expiry. 1→2→3 chains skip the expiry case: a stage-1 export carries no TTL, so it is 600 s after the import. After the upgrade it reads `/me?as_of=created+1µs`
 for each hold and runs the time-travel property there.
 
 ## Concurrency and snapshots

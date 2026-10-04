@@ -7,7 +7,6 @@ together or not at all. Password hashing (slow by design) runs outside LOCK.
 Amounts are Python ints (parsed from JSON as Decimal, never float).
 """
 import datetime
-import decimal
 import hashlib
 import hmac
 import json
@@ -88,10 +87,15 @@ def integral(v):
         return None
     if isinstance(v, int):
         return v
-    if isinstance(v, Decimal) and v.is_finite() and v == v.to_integral_value():
-        if abs(v) > Decimal(10) ** 30:
-            return None if v.adjusted() > 4000 else int(v)
-        return int(v)
+    if isinstance(v, Decimal) and v.is_finite():
+        if v.is_zero():
+            return 0
+        if v.adjusted() > 30:  # far beyond any valid amount; avoid huge-exponent arithmetic
+            return None
+        if v.adjusted() < 0:  # 0 < |v| < 1
+            return None
+        if v == v.to_integral_value():
+            return int(v)
     return None
 
 
@@ -102,10 +106,15 @@ def canon(v):
     if isinstance(v, list):
         return [canon(x) for x in v]
     if isinstance(v, Decimal):
-        if v.is_zero():
-            return {"\u0000n": "0"}
-        ctx = decimal.Context(prec=len(v.as_tuple().digits) + 2)
-        return {"\u0000n": str(v.normalize(ctx))}
+        # exact numeric identity without arithmetic: sign, significant digits, exponent
+        sign, digits, exp = v.as_tuple()
+        digits = list(digits)
+        while digits and digits[0] == 0:
+            digits.pop(0)
+        while digits and digits[-1] == 0:
+            digits.pop()
+            exp += 1
+        return {"\u0000n": "0" if not digits else "%d:%s:%d" % (sign, "".join(map(str, digits)), exp)}
     return v
 
 

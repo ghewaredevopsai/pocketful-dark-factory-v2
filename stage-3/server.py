@@ -727,7 +727,8 @@ def state_from_fixture(fx):
         note = typed(a, "note", str, False)
         vis = typed(a, "visibility", str, False) or "public"
         status = typed(a, "status", str, False) or "open"
-        exp = parse_ts(typed(a, "expires_at", str))
+        exp_text = typed(a, "expires_at", str)
+        exp = parse_ts(exp_text)
         cap = typed(a, "captured_amount", "int", False)
         pay_id = a.get("payment_id")
         pay_ids = a.get("payment_ids")
@@ -756,7 +757,7 @@ def state_from_fixture(fx):
         rec = {"authorization_id": aid, "from_user_id": frm, "from_handle": st.users[frm]["handle"],
                "to_user_id": to, "to_handle": st.users[to]["handle"], "amount": amt,
                "captured_amount": cap, "currency": currency, "note": note or "", "visibility": vis,
-               "status": status, "expires_at": iso(exp), "payment_id": pay_id,
+               "status": status, "expires_at": exp_text, "payment_id": pay_id,
                "payment_ids": list(pay_ids), "_exp": exp}
         seeded.append((rec, ts))
         seeded_auths.append(rec)

@@ -860,6 +860,8 @@ class SeededAuthorizations(unittest.TestCase):
         st = {x["authorization_id"]: x["status"] for x in
               call("GET", "/authorizations", token=ada)[1]["authorizations"]}
         self.assertEqual(st, {"a_1": "open", "a_2": "expired", "a_3": "voided"})
+        got = {x["authorization_id"]: x for x in call("GET", "/authorizations", token=ada)[1]["authorizations"]}
+        self.assertEqual((got["a_2"]["expires_at"], got["a_2"]["closed_at"]), (fx["authorizations"][1]["expires_at"],) * 2)
         self.assertEqual(me(bob)["held"], 0)
         s, p, _ = call("POST", "/authorizations/a_1/capture", {}, bob, "k")
         self.assertEqual((s, p["amount"]), (201, 2000))

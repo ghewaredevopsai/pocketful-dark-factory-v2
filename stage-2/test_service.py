@@ -1,0 +1,644 @@
+"""Own tests for the stage-1 service. Run: python3 test_service.py [base_url]
+
+Without an argument the server is started in-process on a free port.
+"""
+import http.client
+import json
+import sys
+import threading
+import unittest
+from concurrent.futures import ThreadPoolExecutor
+from urllib.parse import urlsplit
+
+BASE = sys.argv.pop(1) if len(sys.argv) > 1 and sys.argv[1].startswith("http") else None
+
+if BASE is None:
+    import server
+    srv = server.Server(("127.0.0.1", 0), server.Handler)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    BASE = "http://127.0.0.1:%d" % srv.server_address[1]
+HOST = urlsplit(BASE).netloc
+
+
+def call(method, path, body=None, token=None, key=None, raw=None, headers=None):
+    c = http.client.HTTPConnection(HOST, timeout=10)
+    h = dict(headers or {})
+    if token:
+        h["Authorization"] = "Bearer " + token
+    if key is not None:
+        h["Idempotency-Key"] = key
+    data = raw if raw is not None else (json.dumps(body).encode() if body is not None else None)
+    if data is not None:
+        h["Content-Type"] = "application/json"
+    c.request(method, path, body=data, headers=h)
+    r = c.getresponse()
+    text = r.read()
+    c.close()
+    return r.status, (json.loads(text) if text else None), r.getheader("Content-Type")
+
+
+def user(handle, balance, uid=None):
+    return {"id": uid or "u_" + handle, "email": handle + "@example.com", "password": "correct horse",
+            "display_name": handle.title(), "handle": handle, "balance": balance}
+
+
+def fixture(users=None, currency="EUR", minor_units=2, payments=None, requests=None, ops=None):
+    fx = {"currency": currency, "minor_units": minor_units,
+          "users": users or [user("ada", 10000), user("bob", 2500), user("cy", 500)],
+          "payments": payments or [], "requests": requests or []}
+    if ops is not None:
+        fx["settlement_operator_ids"] = ops
+    return fx
+
+
+def reset(fx=None):
+    s, b, _ = call("POST", "/_test/reset", fx or fixture())
+    assert s == 204, (s, b)
+
+
+def login(handle):
+    s, b, _ = call("POST", "/auth/login", {"email": handle + "@example.com", "password": "correct horse"})
+    assert s == 200, (s, b)
+    return b["token"]
+
+
+def balances(tokens):
+    return {h: call("GET", "/me", token=t)[1]["balance"] for h, t in tokens.items()}
+
+
+class Base(unittest.TestCase):
+    fx = None
+
+    def setUp(self):
+        reset(self.fx() if self.fx else None)
+        self.t = {h: login(h) for h in ("ada", "bob", "cy")}
+
+    def err(self, resp, status, code):
+        self.assertEqual(resp[0], status, resp)
+        self.assertEqual(resp[1]["error"]["code"], code, resp)
+        self.assertIn("message", resp[1]["error"])
+
+
+class Runtime(Base):
+    def test_health_and_content_type(self):
+        s, b, ct = call("GET", "/health")
+        self.assertEqual((s, b), (200, {"status": "ok"}))
+        self.assertEqual(ct, "application/json; charset=utf-8")
+
+    def test_unknown_route_is_404_with_error_body(self):
+        self.err(call("GET", "/nope", token=self.t["ada"]), 404, "not_found")
+
+    def test_me(self):
+        s, b, _ = call("GET", "/me", token=self.t["ada"])
+        self.assertEqual(b, {"user_id": "u_ada", "display_name": "Ada", "handle": "ada",
+                             "balance": 10000, "currency": "EUR", "minor_units": 2})
+
+    def test_auth_errors(self):
+        self.err(call("GET", "/me"), 401, "unauthenticated")
+        self.err(call("GET", "/me", token="nope"), 401, "unauthenticated")
+        self.err(call("GET", "/me", headers={"Authorization": "Basic abc"}), 401, "unauthenticated")
+
+
+class Reset(Base):
+    def test_negative_balance_rejected_state_unchanged(self):
+        call("POST", "/payments", {"to_handle": "bob", "amount": 1}, self.t["ada"], "k")
+        self.err(call("POST", "/_test/reset", fixture(users=[user("ada", -1)])), 422, "validation_failed")
+        self.assertEqual(call("GET", "/me", token=self.t["ada"])[1]["balance"], 9999)
+
+    def test_malformed_fixtures(self):
+        bads = [
+            fixture(minor_units=1), fixture(users=[user("ada", 1), user("ada", 2, uid="u_x")]),
+            fixture(users=[user("Ada", 1)]), fixture(users=[dict(user("ada", 1), balance="1")]),
+            fixture(payments=[{"id": "p", "from_user_id": "u_zz", "to_user_id": "u_bob", "amount": 1}]),
+            fixture(requests=[{"id": "r", "requester_id": "u_bob", "payer_id": "u_zz", "amount": 1}]),
+            fixture(users=[user("ada", 1), dict(user("bob", 1), email="ada@example.com")]),
+            fixture(users=[user("ada", 1), user("bob", 1, uid="u_ada")]),
+        ]
+        for fx in bads:
+            s = call("POST", "/_test/reset", fx)[0]
+            self.assertTrue(400 <= s < 500, (s, fx))
+        self.assertEqual(call("GET", "/me", token=self.t["ada"])[1]["balance"], 10000)
+        self.err(call("POST", "/_test/reset", raw=b"{nope"), 400, "malformed_request")
+
+    def test_reset_invalidates_old_tokens(self):
+        old = self.t["ada"]
+        reset()
+        self.err(call("GET", "/me", token=old), 401, "unauthenticated")
+
+    def test_seeded_state_readable(self):
+        fx = fixture(
+            payments=[{"id": "p_1", "from_user_id": "u_ada", "to_user_id": "u_bob", "amount": 500,
+                       "note": "coffee", "visibility": "public"},
+                      {"id": "p_2", "from_user_id": "u_ada", "to_user_id": "u_bob", "amount": 7,
+                       "note": "secret", "visibility": "private"}],
+            requests=[{"id": "rq_1", "requester_id": "u_bob", "payer_id": "u_ada", "amount": 1200,
+                       "note": "taxi", "status": "pending"},
+                      {"id": "rq_2", "requester_id": "u_bob", "payer_id": "u_ada", "amount": 500,
+                       "note": "x", "status": "paid", "payment_id": "p_1"}])
+        reset(fx)
+        t = {h: login(h) for h in ("ada", "bob", "cy")}
+        self.assertEqual(balances(t), {"ada": 10000, "bob": 2500, "cy": 500})  # not replayed
+        ids = [p["payment_id"] for p in call("GET", "/activity", token=t["cy"])[1]["payments"]]
+        self.assertEqual(ids, ["p_1"])
+        ids = [p["payment_id"] for p in call("GET", "/activity", token=t["bob"])[1]["payments"]]
+        self.assertEqual(ids, ["p_2", "p_1"])
+        reqs = call("GET", "/requests", token=t["ada"])[1]["requests"]
+        self.assertEqual({r["request_id"]: (r["status"], r["payment_id"]) for r in reqs},
+                         {"rq_1": ("pending", None), "rq_2": ("paid", "p_1")})
+        self.assertEqual(call("GET", "/requests", token=t["cy"])[1]["requests"], [])
+        s, p, _ = call("POST", "/requests/rq_1/pay", {}, t["ada"], "k")
+        self.assertEqual(s, 201)
+        self.assertEqual(balances(t), {"ada": 8800, "bob": 3700, "cy": 500})
+        self.err(call("POST", "/requests/rq_2/pay", {}, t["ada"], "k2"), 409, "request_not_pending")
+
+
+class Auth(Base):
+    def test_signup_login_and_derived_handle(self):
+        s, b, _ = call("POST", "/auth/signup", {"email": "Dee.Dee+X@Example.com", "password": "12345678",
+                                                "display_name": "Dee"})
+        self.assertEqual(s, 201, b)
+        self.assertEqual(set(b), {"user_id", "display_name", "token"})
+        me = call("GET", "/me", token=b["token"])[1]
+        self.assertEqual((me["handle"], me["balance"]), ("dee_dee_x", 0))
+        s, b2, _ = call("POST", "/auth/login", {"email": "Dee.Dee+X@Example.com", "password": "12345678"})
+        self.assertEqual((s, b2["user_id"]), (200, b["user_id"]))
+        self.assertEqual(call("GET", "/me", token=b["token"])[0], 200)  # both tokens valid
+        # can receive money and be asked immediately
+        self.assertEqual(call("POST", "/payments", {"to_handle": "dee_dee_x", "amount": 5},
+                              self.t["ada"], "a")[0], 201)
+        self.assertEqual(call("POST", "/requests", {"payer_handle": "dee_dee_x", "amount": 5},
+                              self.t["ada"], "a")[0], 201)
+
+    def test_handle_truncated_to_20(self):
+        s, b, _ = call("POST", "/auth/signup", {"email": "a" * 30 + "@x.io", "password": "12345678",
+                                                "display_name": "A"})
+        self.assertEqual(call("GET", "/me", token=b["token"])[1]["handle"], "a" * 20)
+
+    def test_signup_errors(self):
+        ok = {"email": "new@example.com", "password": "12345678", "display_name": "N"}
+        self.err(call("POST", "/auth/signup", dict(ok, email="ada@example.com")), 409, "email_taken")
+        self.err(call("POST", "/auth/signup", dict(ok, password="1234567")), 422, "validation_failed")
+        self.err(call("POST", "/auth/signup", dict(ok, email="nope")), 422, "validation_failed")
+        self.err(call("POST", "/auth/signup", dict(ok, email="ada@other.org")), 409, "handle_taken")
+        self.err(call("POST", "/auth/login", {"email": "ada@other.org", "password": "correct horse"}),
+                 401, "unauthenticated")  # no account was created
+        self.err(call("POST", "/auth/signup", dict(ok, email=5)), 400, "malformed_request")
+        self.err(call("POST", "/auth/signup", raw=b"{"), 400, "malformed_request")
+
+    def test_login_errors(self):
+        self.err(call("POST", "/auth/login", {"email": "ada@example.com", "password": "wrong horse"}),
+                 401, "unauthenticated")
+        self.err(call("POST", "/auth/login", {"email": "zz@example.com", "password": "correct horse"}),
+                 401, "unauthenticated")
+
+    def test_password_not_stored_plaintext(self):
+        dump = json.dumps(call("GET", "/_test/export")[1])
+        self.assertNotIn("correct horse", dump)
+
+    def test_concurrent_logins_fast(self):
+        import time
+        t0 = time.time()
+        with ThreadPoolExecutor(50) as ex:
+            res = list(ex.map(lambda _: call("POST", "/auth/login", {"email": "ada@example.com",
+                                                                     "password": "correct horse"})[0],
+                              range(50)))
+        self.assertEqual(res, [200] * 50)
+        self.assertLess(time.time() - t0, 5)
+
+
+class EmptyBody(Base):
+    """Regression: an empty or non-object body is 400 malformed_request (ruling fd77ec53)."""
+
+    def test_empty_and_non_object_bodies(self):
+        a, op = self.t["ada"], self.t["ada"]
+        rq = call("POST", "/requests", {"payer_handle": "ada", "amount": 5}, self.t["bob"], "r")[1]
+        authed = ["/payments", "/requests", "/splits", "/settlements"]
+        public = ["/auth/signup", "/auth/login", "/_test/reset", "/_test/import"]
+        for raw in (b"", b"[]", b"5", b"null", b'"x"'):
+            for path in authed:
+                with self.subTest(path=path, raw=raw):
+                    s, b, _ = call("POST", path, raw=raw, token=a, key="k1",
+                                   headers={"Content-Type": "application/json"})
+                    if path == "/settlements":
+                        self.assertIn(s, (400, 403))  # ada is not an operator here
+                    else:
+                        self.err((s, b, None), 400, "malformed_request")
+            for path in public:
+                with self.subTest(path=path, raw=raw):
+                    self.err(call("POST", path, raw=raw), 400, "malformed_request")
+            if raw:
+                self.err(call("POST", "/requests/%s/pay" % rq["request_id"], raw=raw, token=a, key="k1"),
+                         400, "malformed_request")
+        self.assertEqual(balances(self.t), {"ada": 10000, "bob": 2500, "cy": 500})
+        # pay's body is optional: empty is {} (same value as {} for idempotency)
+        path = "/requests/%s/pay" % rq["request_id"]
+        s1, p1, _ = call("POST", path, raw=b"", token=a, key="P")
+        s2, p2, _ = call("POST", path, {}, a, "P")
+        self.assertEqual((s1, s2, p1["visibility"], p1), (201, 200, "public", p2))
+
+
+class Payments(Base):
+    def test_payment_body_and_balances(self):
+        s, p, _ = call("POST", "/payments", {"to_handle": "bob", "amount": 1500, "note": "dinner",
+                                             "visibility": "public"}, self.t["ada"], "k1")
+        self.assertEqual(s, 201)
+        for k, v in {"from_user_id": "u_ada", "from_handle": "ada", "to_user_id": "u_bob", "to_handle": "bob",
+                     "amount": 1500, "currency": "EUR", "note": "dinner", "visibility": "public",
+                     "request_id": None, "settlement_id": None}.items():
+            self.assertEqual(p[k], v)
+        self.assertRegex(p["created_at"], r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?[+-]\d\d:\d\d$")
+        self.assertLessEqual(len(p["payment_id"]), 64)
+        self.assertEqual(balances(self.t), {"ada": 8500, "bob": 4000, "cy": 500})
+
+    def test_defaults_and_numeric_forms(self):
+        for i, amt in enumerate([1000, 1000.0, 1e3]):
+            s, p, _ = call("POST", "/payments", {"to_handle": "bob", "amount": amt}, self.t["ada"], "n%d" % i)
+            self.assertEqual((s, p["amount"], p["note"], p["visibility"]), (201, 1000, "", "public"))
+        s, p, _ = call("POST", "/payments", raw=b'{"to_handle":"bob","amount":1E3}', token=self.t["ada"], key="e")
+        self.assertEqual((s, p["amount"]), (201, 1000))
+
+    def test_payment_errors(self):
+        a = self.t["ada"]
+        cases = [
+            ({"to_handle": "bob", "amount": 0}, 422, "validation_failed"),
+            ({"to_handle": "bob", "amount": 1000000001}, 422, "validation_failed"),
+            ({"to_handle": "bob", "amount": 1.5}, 422, "validation_failed"),
+            ({"to_handle": "bob", "amount": "5"}, 422, "validation_failed"),
+            ({"to_handle": "bob", "amount": True}, 422, "validation_failed"),
+            ({"to_handle": "bob", "amount": None}, 422, "validation_failed"),
+            ({"to_handle": "bob"}, 422, "validation_failed"),
+            ({"amount": 5}, 422, "validation_failed"),
+            ({"to_handle": "ada", "amount": 5}, 422, "self_payment"),
+            ({"to_handle": "bob", "amount": 5, "note": "x" * 201}, 422, "validation_failed"),
+            ({"to_handle": "bob", "amount": 5, "note": None}, 422, "validation_failed"),
+            ({"to_handle": "bob", "amount": 5, "note": 5}, 422, "validation_failed"),
+            ({"to_handle": "bob", "amount": 5, "visibility": "friends"}, 422, "validation_failed"),
+            ({"to_handle": "bob", "amount": 5, "visibility": None}, 422, "validation_failed"),
+            ({"to_handle": "zed", "amount": 5}, 404, "not_found"),
+            ({"to_handle": 7, "amount": 5}, 400, "malformed_request"),
+            ({"to_handle": "bob", "amount": 10001}, 409, "insufficient_funds"),
+        ]
+        for i, (body, st, code) in enumerate(cases):
+            with self.subTest(body=body):
+                self.err(call("POST", "/payments", body, a, "e%d" % i), st, code)
+        self.err(call("POST", "/payments", raw=b"[1]", token=a, key="x"), 400, "malformed_request")
+        self.err(call("POST", "/payments", raw=b"{bad", token=a, key="x"), 400, "malformed_request")
+        self.err(call("POST", "/payments", raw=b'{"to_handle":"bob","amount":NaN}', token=a, key="x"),
+                 400, "malformed_request")
+        for amt in (b"1e999999999", b"-1e999999999", b"1e-999999999", b"1" + b"0" * 5000, b"0.5"):
+            self.err(call("POST", "/payments", raw=b'{"to_handle":"bob","amount":%s}' % amt, token=a, key="x"),
+                     422, "validation_failed")
+        deep = b'{"a":' + b"[" * 100000 + b"]" * 100000 + b"}"
+        self.err(call("POST", "/payments", raw=deep, token=a, key="x"), 400, "malformed_request")
+        self.assertEqual(balances(self.t), {"ada": 10000, "bob": 2500, "cy": 500})
+        self.assertEqual(call("GET", "/activity", token=a)[1]["payments"], [])
+
+    def test_note_exactly_200_and_unicode_verbatim(self):
+        note = "  ünïcødé 💸 <b>&amp;</b> \u200b " + "x" * 160
+        note = note[:200]
+        s, p, _ = call("POST", "/payments", {"to_handle": "bob", "amount": 1, "note": note}, self.t["ada"], "u")
+        self.assertEqual((s, p["note"]), (201, note))
+        feed = call("GET", "/activity", token=self.t["bob"])[1]["payments"]
+        self.assertEqual(feed[0]["note"], note)
+
+    def test_exact_balance_payment_allowed(self):
+        self.assertEqual(call("POST", "/payments", {"to_handle": "ada", "amount": 500}, self.t["cy"], "k")[0], 201)
+        self.err(call("POST", "/payments", {"to_handle": "ada", "amount": 1}, self.t["cy"], "k2"),
+                 409, "insufficient_funds")
+
+
+class Idempotency(Base):
+    def test_header_rules(self):
+        a = self.t["ada"]
+        body = {"to_handle": "bob", "amount": 5}
+        self.err(call("POST", "/payments", body, a), 400, "missing_idempotency_key")
+        self.err(call("POST", "/payments", body, a, ""), 400, "missing_idempotency_key")
+        self.err(call("POST", "/payments", body, a, "k" * 256), 422, "validation_failed")
+        self.assertEqual(call("POST", "/payments", body, a, "k" * 255)[0], 201)
+        self.err(call("POST", "/payments", body, None, "k" * 256), 401, "unauthenticated")
+        self.err(call("POST", "/payments", body, None), 401, "unauthenticated")
+
+    def test_replay_reuse_and_scope(self):
+        a, b = self.t["ada"], self.t["bob"]
+        s1, p1, _ = call("POST", "/payments", {"to_handle": "bob", "amount": 5, "note": "n"}, a, "K")
+        s2, p2, _ = call("POST", "/payments", raw=b'{ "note":"n",  "amount":5.0, "to_handle":"bob"}', token=a, key="K")
+        self.assertEqual((s1, s2, p1), (201, 200, p2))
+        self.err(call("POST", "/payments", {"to_handle": "bob", "amount": 6}, a, "K"), 409, "idempotency_key_reuse")
+        # invalid body with a claimed key is still reuse (§7 last paragraph)
+        self.err(call("POST", "/payments", {"to_handle": "bob", "amount": -1}, a, "K"), 409, "idempotency_key_reuse")
+        # other user, same key: independent
+        self.assertEqual(call("POST", "/payments", {"to_handle": "ada", "amount": 5, "note": "n"}, b, "K")[0], 201)
+        # same key, same body, other path: a new request
+        self.assertEqual(call("POST", "/requests", {"payer_handle": "bob", "amount": 5, "note": "n"}, a, "K")[0], 201)
+        self.assertEqual(balances(self.t), {"ada": 10000, "bob": 2500, "cy": 500})
+
+    def test_failed_key_reusable(self):
+        a = self.t["cy"]
+        self.err(call("POST", "/payments", {"to_handle": "bob", "amount": 501}, a, "F"), 409, "insufficient_funds")
+        self.assertEqual(call("POST", "/payments", {"to_handle": "bob", "amount": 1}, a, "F")[0], 201)
+
+    def test_concurrent_identical_one_effect(self):
+        a = self.t["ada"]
+        body = {"to_handle": "bob", "amount": 100}
+        with ThreadPoolExecutor(30) as ex:
+            res = list(ex.map(lambda _: call("POST", "/payments", body, a, "C"), range(30)))
+        self.assertEqual(sorted(r[0] for r in res), [200] * 29 + [201])
+        self.assertEqual(len({json.dumps(r[1], sort_keys=True) for r in res}), 1)
+        self.assertEqual(balances(self.t)["ada"], 9900)
+
+    def test_concurrent_failures_do_not_claim(self):
+        c = self.t["cy"]
+        with ThreadPoolExecutor(20) as ex:
+            res = list(ex.map(lambda _: call("POST", "/payments", {"to_handle": "bob", "amount": 501}, c, "Z")[0],
+                              range(20)))
+        self.assertEqual(res, [409] * 20)
+        self.assertEqual(call("POST", "/payments", {"to_handle": "bob", "amount": 500}, c, "Z")[0], 201)
+
+    def test_pay_replay_after_paid(self):
+        rq = call("POST", "/requests", {"payer_handle": "ada", "amount": 300}, self.t["bob"], "r")[1]
+        path = "/requests/%s/pay" % rq["request_id"]
+        s1, p1, _ = call("POST", path, {"visibility": "private"}, self.t["ada"], "P")
+        s2, p2, _ = call("POST", path, {"visibility": "private"}, self.t["ada"], "P")
+        self.assertEqual((s1, s2, p1), (201, 200, p2))
+        self.assertEqual((p1["request_id"], p1["visibility"]), (rq["request_id"], "private"))
+        self.err(call("POST", path, {}, self.t["ada"], "P"), 409, "idempotency_key_reuse")
+        self.err(call("POST", path, {}, self.t["ada"], "P2"), 409, "request_not_pending")
+        self.assertEqual(balances(self.t), {"ada": 9700, "bob": 2800, "cy": 500})
+
+    def test_concurrent_pay_distinct_keys_moves_once(self):
+        rq = call("POST", "/requests", {"payer_handle": "ada", "amount": 300}, self.t["bob"], "r")[1]
+        path = "/requests/%s/pay" % rq["request_id"]
+        with ThreadPoolExecutor(20) as ex:
+            res = list(ex.map(lambda i: call("POST", path, {}, self.t["ada"], "k%d" % i)[0], range(20)))
+        self.assertEqual(sorted(res), [201] + [409] * 19)
+        self.assertEqual(balances(self.t), {"ada": 9700, "bob": 2800, "cy": 500})
+
+
+class Concurrency(Base):
+    def test_burst_conserves_and_never_negative(self):
+        users = [user("u%d" % i, 1000) for i in range(10)]
+        reset(fixture(users=users))
+        toks = {u["handle"]: login(u["handle"]) for u in users}
+        import random
+        rnd = random.Random(7)
+        jobs = []
+        for i in range(400):
+            a, b = rnd.sample(range(10), 2)
+            jobs.append(("u%d" % a, "u%d" % b, rnd.randint(1, 400), "j%d" % i))
+
+        def go(j):
+            return call("POST", "/payments", {"to_handle": j[1], "amount": j[2]}, toks[j[0]], j[3])[0]
+
+        with ThreadPoolExecutor(50) as ex:
+            res = list(ex.map(go, jobs))
+        self.assertTrue(set(res) <= {201, 409}, set(res))
+        bal = balances(toks)
+        self.assertEqual(sum(bal.values()), 10000)
+        self.assertTrue(all(v >= 0 for v in bal.values()))
+
+
+class Requests(Base):
+    def mk(self, amount=1200, payer="ada", requester="bob", key="r"):
+        s, r, _ = call("POST", "/requests", {"payer_handle": payer, "amount": amount, "note": "taxi"},
+                       self.t[requester], key)
+        self.assertEqual(s, 201, r)
+        return r
+
+    def test_create_body_and_errors(self):
+        r = self.mk()
+        for k, v in {"requester_id": "u_bob", "requester_handle": "bob", "payer_id": "u_ada", "payer_handle": "ada",
+                     "amount": 1200, "currency": "EUR", "note": "taxi", "status": "pending",
+                     "payment_id": None}.items():
+            self.assertEqual(r[k], v)
+        b = self.t["bob"]
+        self.err(call("POST", "/requests", {"payer_handle": "bob", "amount": 5}, b, "1"), 422, "self_request")
+        self.err(call("POST", "/requests", {"payer_handle": "ada", "amount": 0}, b, "2"), 422, "validation_failed")
+        self.err(call("POST", "/requests", {"payer_handle": "ada", "amount": 10 ** 9 + 1}, b, "3"), 422,
+                 "validation_failed")
+        self.err(call("POST", "/requests", {"payer_handle": "ada", "amount": 5, "note": "x" * 201}, b, "4"), 422,
+                 "validation_failed")
+        self.err(call("POST", "/requests", {"payer_handle": "zz", "amount": 5}, b, "5"), 404, "not_found")
+        # exceeding payer balance is fine
+        self.mk(amount=10 ** 9, payer="cy", requester="bob", key="6")
+
+    def test_short_payer_can_pay_later(self):
+        r = self.mk(amount=600, payer="cy", requester="bob")
+        path = "/requests/%s/pay" % r["request_id"]
+        self.err(call("POST", path, {}, self.t["cy"], "p"), 409, "insufficient_funds")
+        call("POST", "/payments", {"to_handle": "cy", "amount": 100}, self.t["ada"], "top")
+        self.assertEqual(call("POST", path, {}, self.t["cy"], "p")[0], 201)  # failed key reusable
+
+    def test_pay_permissions(self):
+        r = self.mk()
+        path = "/requests/%s/pay" % r["request_id"]
+        self.err(call("POST", path, {}, self.t["bob"], "p"), 403, "forbidden")
+        self.err(call("POST", path, {}, self.t["cy"], "p"), 403, "forbidden")
+        self.err(call("POST", "/requests/nope/pay", {}, self.t["ada"], "p"), 404, "not_found")
+        self.err(call("POST", path, {"visibility": "x"}, self.t["ada"], "p"), 422, "validation_failed")
+
+    def test_decline_cancel(self):
+        r = self.mk()
+        d = "/requests/%s/decline" % r["request_id"]
+        c = "/requests/%s/cancel" % r["request_id"]
+        self.err(call("POST", d, None, self.t["bob"]), 403, "forbidden")
+        self.err(call("POST", c, None, self.t["ada"]), 403, "forbidden")
+        s, b, _ = call("POST", d, None, self.t["ada"])
+        self.assertEqual((s, b["status"]), (200, "declined"))
+        self.assertEqual(call("POST", d, None, self.t["ada"])[1]["status"], "declined")
+        self.err(call("POST", c, None, self.t["bob"]), 409, "request_not_pending")
+        self.err(call("POST", "/requests/%s/pay" % r["request_id"], {}, self.t["ada"], "p"), 409,
+                 "request_not_pending")
+        r2 = self.mk(key="r2")
+        c2 = "/requests/%s/cancel" % r2["request_id"]
+        self.assertEqual(call("POST", c2, None, self.t["bob"])[1]["status"], "cancelled")
+        self.assertEqual(call("POST", c2, None, self.t["bob"])[0], 200)
+        self.err(call("POST", "/requests/%s/decline" % r2["request_id"], None, self.t["ada"]), 409,
+                 "request_not_pending")
+        r3 = self.mk(key="r3")
+        call("POST", "/requests/%s/pay" % r3["request_id"], {}, self.t["ada"], "p3")
+        self.err(call("POST", "/requests/%s/decline" % r3["request_id"], None, self.t["ada"]), 409,
+                 "request_not_pending")
+        self.err(call("POST", "/requests/%s/cancel" % r3["request_id"], None, self.t["bob"]), 409,
+                 "request_not_pending")
+        self.err(call("POST", "/requests/nope/cancel", None, self.t["bob"]), 404, "not_found")
+
+    def test_list_filters_and_paging(self):
+        ids = [self.mk(amount=i + 1, key="k%d" % i)["request_id"] for i in range(5)]
+        self.mk(payer="bob", requester="ada", key="out")
+        s, b, _ = call("GET", "/requests?direction=incoming&limit=2", token=self.t["ada"])
+        self.assertEqual([r["request_id"] for r in b["requests"]], ids[::-1][:2])
+        self.assertTrue(b["has_more"])
+        b = call("GET", "/requests?direction=incoming&limit=2&offset=4", token=self.t["ada"])[1]
+        self.assertEqual(([r["request_id"] for r in b["requests"]], b["has_more"]), ([ids[0]], False))
+        self.assertEqual(len(call("GET", "/requests?direction=outgoing", token=self.t["ada"])[1]["requests"]), 1)
+        self.assertEqual(len(call("GET", "/requests?status=pending&x=1", token=self.t["ada"])[1]["requests"]), 6)
+        self.assertEqual(len(call("GET", "/requests?status=paid", token=self.t["ada"])[1]["requests"]), 0)
+        self.assertEqual(call("GET", "/requests", token=self.t["cy"])[1], {"requests": [], "has_more": False})
+        for qs in ("limit=0", "limit=201", "limit=1e9", "limit=4.0", "limit=+4", "offset=-1", "limit=",
+                   "direction=sideways", "status=open", "offset=abc"):
+            self.err(call("GET", "/requests?" + qs, token=self.t["ada"]), 422, "validation_failed")
+        self.assertEqual(call("GET", "/requests?limit=200&offset=0", token=self.t["ada"])[0], 200)
+
+
+class Feed(Base):
+    def test_visibility_rules(self):
+        call("POST", "/payments", {"to_handle": "bob", "amount": 1, "visibility": "private"}, self.t["ada"], "a")
+        call("POST", "/payments", {"to_handle": "cy", "amount": 2}, self.t["ada"], "b")
+        r = call("POST", "/requests", {"payer_handle": "ada", "amount": 3}, self.t["bob"], "r")[1]
+        feed = lambda h: [p["amount"] for p in call("GET", "/activity", token=self.t[h])[1]["payments"]]
+        self.assertEqual(feed("ada"), [2, 1])
+        self.assertEqual(feed("bob"), [2, 1])
+        self.assertEqual(feed("cy"), [2])
+        call("POST", "/requests/%s/pay" % r["request_id"], {"visibility": "private"}, self.t["ada"], "p")
+        self.assertEqual(feed("cy"), [2])
+        self.assertEqual(feed("bob"), [3, 2, 1])
+
+    def test_paging_same_second_consistent(self):
+        for i in range(25):
+            call("POST", "/payments", {"to_handle": "bob", "amount": 1, "note": str(i)}, self.t["ada"], "k%d" % i)
+        seen = []
+        for off in range(0, 25, 7):
+            seen += [p["note"] for p in call("GET", "/activity?limit=7&offset=%d" % off,
+                                             token=self.t["cy"])[1]["payments"]]
+        self.assertEqual(seen, [str(i) for i in range(24, -1, -1)])
+        self.err(call("GET", "/activity?limit=201", token=self.t["cy"]), 422, "validation_failed")
+
+
+class Splits(Base):
+    def test_rounding_table(self):
+        for amount, shares in [(1000, [334, 333, 333]), (1, [1, 0, 0]), (10, [4, 3, 3]), (999, [333, 333, 333])]:
+            s, b, _ = call("POST", "/splits", {"amount": amount, "participant_handles": ["ada", "bob", "cy"]},
+                           self.t["ada"], "s%d" % amount)
+            self.assertEqual(s, 201)
+            self.assertEqual([x["amount"] for x in b["shares"]], shares)
+            self.assertEqual([r["payer_handle"] for r in b["requests"]], ["bob", "cy"])
+            self.assertEqual([r["amount"] for r in b["requests"]], shares[1:])
+
+    def test_five_way_and_order(self):
+        users = [user(h, 100) for h in ("a", "b", "c", "d", "e")]
+        reset(fixture(users=users))
+        t = login("a")
+        b = call("POST", "/splits", {"amount": 5, "participant_handles": ["a", "b", "c", "d", "e"]}, t, "x")[1]
+        self.assertEqual([x["amount"] for x in b["shares"]], [1] * 5)
+        b = call("POST", "/splits", {"amount": 7, "participant_handles": ["e", "d", "c", "b", "a"]}, t, "y")[1]
+        self.assertEqual([(x["handle"], x["amount"]) for x in b["shares"]],
+                         [("e", 2), ("d", 2), ("c", 1), ("b", 1), ("a", 1)])
+        self.assertEqual([r["payer_handle"] for r in b["requests"]], ["e", "d", "c", "b"])
+
+    def test_zero_share_request_and_caller_omitted(self):
+        b = call("POST", "/splits", {"amount": 1, "participant_handles": ["bob", "cy"], "note": "z"},
+                 self.t["ada"], "z")[1]
+        self.assertEqual([(r["payer_handle"], r["amount"]) for r in b["requests"]], [("bob", 1), ("cy", 0)])
+        rid = b["requests"][1]["request_id"]
+        self.assertEqual(call("POST", "/requests/%s/pay" % rid, {}, self.t["cy"], "p")[0], 201)
+
+    def test_caller_only_and_errors(self):
+        s, b, _ = call("POST", "/splits", {"amount": 50, "participant_handles": ["ada"]}, self.t["ada"], "o")
+        self.assertEqual((s, b["requests"], b["shares"], b["note"]), (201, [], [{"handle": "ada", "amount": 50}], ""))
+        a = self.t["ada"]
+        self.err(call("POST", "/splits", {"amount": 5, "participant_handles": []}, a, "1"), 422, "validation_failed")
+        self.err(call("POST", "/splits", {"amount": 5, "participant_handles": ["bob", "bob"]}, a, "2"), 422,
+                 "validation_failed")
+        self.err(call("POST", "/splits", {"amount": 0, "participant_handles": ["bob"]}, a, "3"), 422,
+                 "validation_failed")
+        self.err(call("POST", "/splits", {"amount": 5, "participant_handles": ["bob"], "note": "x" * 201}, a, "4"),
+                 422, "validation_failed")
+        self.err(call("POST", "/splits", {"amount": 5, "participant_handles": ["bob", "zz"]}, a, "5"), 404,
+                 "not_found")
+        self.err(call("POST", "/splits", {"amount": 5}, a, "6"), 422, "validation_failed")
+
+    def test_split_not_in_feed_and_paid_in_full_conserves(self):
+        b = call("POST", "/splits", {"amount": 1000, "participant_handles": ["ada", "bob", "cy"]},
+                 self.t["ada"], "s")[1]
+        self.assertEqual(call("GET", "/activity", token=self.t["ada"])[1]["payments"], [])
+        for r in b["requests"]:
+            self.assertEqual(call("POST", "/requests/%s/pay" % r["request_id"], {},
+                                  self.t[r["payer_handle"]], "p")[0], 201)
+        bal = balances(self.t)
+        self.assertEqual(bal, {"ada": 10666, "bob": 2167, "cy": 167})
+        self.assertEqual(sum(bal.values()), 13000)
+
+
+class ExportImport(Base):
+    def test_round_trip_preserves_everything(self):
+        a = self.t["ada"]
+        p = call("POST", "/payments", {"to_handle": "bob", "amount": 5}, a, "K")[1]
+        call("POST", "/payments", {"to_handle": "bob", "amount": 9999}, self.t["cy"], "F")  # fails
+        exp = call("GET", "/_test/export")[1]
+        self.assertEqual((exp["track"], exp["format_version"]), ("pocketful", 1))
+        call("POST", "/payments", {"to_handle": "bob", "amount": 7}, a, "K2")  # after export
+        reset(fixture(users=[user("zed", 1)]))
+        self.assertEqual(call("POST", "/_test/import", exp)[0], 204)
+        self.assertEqual(call("POST", "/_test/import", exp)[0], 204)  # replacement, no duplicates
+        self.assertEqual(balances(self.t), {"ada": 9995, "bob": 2505, "cy": 500})
+        s, b, _ = call("POST", "/payments", {"to_handle": "bob", "amount": 5}, a, "K")
+        self.assertEqual((s, b), (200, p))
+        self.assertEqual(call("POST", "/payments", {"to_handle": "bob", "amount": 1}, self.t["cy"], "F")[0], 201)
+        self.assertEqual(len(call("GET", "/activity", token=a)[1]["payments"]), 2)
+        self.assertEqual(call("POST", "/auth/login", {"email": "zed@example.com",
+                                                      "password": "correct horse"})[0], 401)
+        login("ada")
+
+    def test_import_errors_leave_state(self):
+        exp = call("GET", "/_test/export")[1]
+        call("POST", "/payments", {"to_handle": "bob", "amount": 5}, self.t["ada"], "K")
+        for body in ({}, dict(exp, track="tablekeeper"), dict(exp, format_version=2), {"track": "pocketful",
+                     "format_version": 1}, dict(exp, state={"x": 1}), dict(exp, state=[])):
+            self.err(call("POST", "/_test/import", body), 422, "validation_failed")
+        self.err(call("POST", "/_test/import", raw=b"{"), 400, "malformed_request")
+        self.assertEqual(balances(self.t)["ada"], 9995)
+
+
+class Settlements(Base):
+    fx = staticmethod(lambda: fixture(ops=["u_cy"]))
+
+    def test_netting_and_body(self):
+        tr = [{"from_handle": "bob", "to_handle": "ada", "amount": 3000},
+              {"from_handle": "ada", "to_handle": "bob", "amount": 1000, "note": "n", "visibility": "private"}]
+        s, b, _ = call("POST", "/settlements", {"transfers": tr}, self.t["cy"], "S")
+        self.assertEqual(s, 201, b)  # bob has 2500 < 3000 but nets to >= 0
+        self.assertEqual([p["amount"] for p in b["payments"]], [3000, 1000])
+        self.assertTrue(all(p["settlement_id"] == b["settlement_id"] and p["created_at"] == b["committed_at"]
+                            and p["request_id"] is None for p in b["payments"]))
+        self.assertEqual(balances(self.t), {"ada": 12000, "bob": 500, "cy": 500})
+        self.assertEqual(call("POST", "/settlements", {"transfers": tr}, self.t["cy"], "S")[1], b)
+        self.assertEqual(balances(self.t)["ada"], 12000)
+        # private member hidden from operator cy
+        self.assertEqual([p["amount"] for p in call("GET", "/activity", token=self.t["cy"])[1]["payments"]], [3000])
+
+    def test_errors(self):
+        c = self.t["cy"]
+        ok = {"from_handle": "ada", "to_handle": "bob", "amount": 1}
+        self.err(call("POST", "/settlements", {"transfers": [ok]}, None, "a"), 401, "unauthenticated")
+        self.err(call("POST", "/settlements", {"transfers": [ok]}, self.t["ada"], "a"), 403, "forbidden")
+        self.err(call("POST", "/settlements", {"transfers": [ok]}, c), 400, "missing_idempotency_key")
+        self.err(call("POST", "/settlements", {"transfers": []}, c, "1"), 422, "validation_failed")
+        self.err(call("POST", "/settlements", {"transfers": [ok] * 33}, c, "2"), 422, "validation_failed")
+        self.err(call("POST", "/settlements", {"transfers": "x"}, c, "3"), 422, "validation_failed")
+        self.err(call("POST", "/settlements", {}, c, "4"), 422, "validation_failed")
+        self.err(call("POST", "/settlements", {"transfers": [ok, dict(ok, to_handle="zz"),
+                                                             dict(ok, to_handle="ada")]}, c, "5"), 404, "not_found")
+        self.err(call("POST", "/settlements", {"transfers": [ok, dict(ok, to_handle="ada"),
+                                                             dict(ok, to_handle="zz")]}, c, "6"), 422, "self_payment")
+        self.err(call("POST", "/settlements", {"transfers": [dict(ok, amount=99999), dict(ok, amount=0)]}, c, "7"),
+                 422, "validation_failed")
+        self.err(call("POST", "/settlements", {"transfers": [dict(ok, from_handle="cy", amount=501)]}, c, "8"),
+                 409, "insufficient_funds")
+        self.assertEqual(call("POST", "/settlements", {"transfers": [ok] * 32}, c, "8")[0], 201)  # key unclaimed
+        self.assertEqual(balances(self.t), {"ada": 9968, "bob": 2532, "cy": 500})
+
+    def test_members_survive_export_import(self):
+        b = call("POST", "/settlements", {"transfers": [{"from_handle": "ada", "to_handle": "bob", "amount": 5}]},
+                 self.t["cy"], "S")[1]
+        exp = call("GET", "/_test/export")[1]
+        reset()
+        call("POST", "/_test/import", exp)
+        self.assertEqual(call("POST", "/settlements", {"transfers": [{"from_handle": "ada", "to_handle": "bob",
+                                                                      "amount": 5}]}, self.t["cy"], "S"), (200, b,
+                         "application/json; charset=utf-8"))
+        feed = call("GET", "/activity", token=self.t["ada"])[1]["payments"]
+        self.assertEqual(feed[0]["settlement_id"], b["settlement_id"])
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=1)

@@ -1426,5 +1426,84 @@ class SignupHistory(Base):
         self.assertEqual(call("GET", "/statement" + q(snapshot=st2["snapshot"]), token=tok)[1]["closing_balance"], 300)
 
 
+class Stage2ImportHolds(unittest.TestCase):
+    """Regression (coordinator 5e818548, D2/D3): imported stage-2 holds that are closed, or whose deadline is not
+    after creation, contribute nothing to any view; held and available are never negative."""
+
+    def stage2_export(self, fx, actions=None):
+        import os, subprocess, socket, time
+        global HOST
+        here = os.path.dirname(os.path.abspath(__file__))
+        s2 = os.path.join(here, "..", "stage-2", "server.py")
+        if not os.path.exists(s2):
+            self.skipTest("stage-2 source not present")
+        sock = socket.socket(); sock.bind(("127.0.0.1", 0)); port = sock.getsockname()[1]; sock.close()
+        proc = subprocess.Popen([sys.executable, s2], env=dict(os.environ, PORT=str(port)), cwd=os.path.dirname(s2),
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        saved = HOST
+        try:
+            HOST = "127.0.0.1:%d" % port
+            for _ in range(100):
+                try:
+                    http.client.HTTPConnection(HOST, timeout=1).request("GET", "/health"); break
+                except OSError:
+                    time.sleep(0.05)
+            reset(fx)
+            out = actions() if actions else None
+            return call("GET", "/_test/export")[1], out
+        finally:
+            HOST = saved
+            proc.terminate(); proc.wait()
+
+    def views(self, tok, instants):
+        for t in instants:
+            m = call("GET", "/me" + q(as_of=t), token=tok)[1]
+            self.assertGreaterEqual(m["held"], 0, t)
+            self.assertGreaterEqual(m["available"], 0, t)
+            self.assertEqual(m["available"], m["total"] - m["held"], t)
+            yield m
+
+    def hold_fx(self, **hold):
+        return dict(fixture(users=[user("ada", 1000), user("bob", 0), user("cy", 0)]),
+                    authorizations=[dict({"id": "a_1", "from_user_id": "u_ada", "to_user_id": "u_bob",
+                                          "amount": 300}, **hold)])
+
+    def test_d2_seeded_expired_hold_with_future_deadline(self):
+        exp, _ = self.stage2_export(self.hold_fx(status="expired", expires_at=iso_in(3600)))
+        self.assertEqual(call("POST", "/_test/import", exp)[0], 204)
+        tok = login("ada")
+        self.assertEqual(me(tok)["held"], 0)
+        for m in self.views(tok, [iso_in(-3600), iso_in(5), iso_in(1800), iso_in(7200)]):
+            self.assertEqual((m["held"], m["available"]), (0, 1000))
+
+    def test_d3_open_hold_with_past_deadline(self):
+        exp, _ = self.stage2_export(self.hold_fx(status="open", expires_at=iso_in(-3600)))
+        self.assertEqual(call("POST", "/_test/import", exp)[0], 204)
+        tok = login("ada")
+        a = call("GET", "/authorizations", token=tok)[1]["authorizations"][0]
+        for m in self.views(tok, [iso_in(-7200), iso_in(-1800), ts_after(a["created_at"], -1), a["created_at"],
+                                  iso_in(0), iso_in(3600)]):
+            self.assertEqual((m["held"], m["available"]), (0, 1000))
+
+    def test_voided_and_open_api_holds(self):
+        def acts():
+            ada, bob = login("ada"), login("bob")
+            v = call("POST", "/authorizations", {"to_handle": "bob", "amount": 200}, ada, "v")[1]
+            call("POST", "/authorizations/%s/void" % v["authorization_id"], None, ada)
+            o = call("POST", "/authorizations", {"to_handle": "bob", "amount": 100}, ada, "o")[1]
+            return v, o
+        exp, (v, o) = self.stage2_export(fixture(users=[user("ada", 1000), user("bob", 0), user("cy", 0)]), acts)
+        self.assertEqual(call("POST", "/_test/import", exp)[0], 204)
+        tok = login("ada")
+        got = {a["authorization_id"]: a for a in call("GET", "/authorizations", token=tok)[1]["authorizations"]}
+        self.assertTrue(got[v["authorization_id"]]["closed_at"])
+        self.assertIsNone(got[o["authorization_id"]]["closed_at"])
+        held = [m["held"] for m in self.views(tok, [ts_after(v["created_at"], -1), v["created_at"],
+                                                     ts_after(o["created_at"], -1), o["created_at"], iso_in(0),
+                                                     ts_after(o["expires_at"], 0)])]
+        self.assertEqual(held, [0, 0, 0, 100, 100, 0])
+        self.assertEqual(me(tok)["held"], 100)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

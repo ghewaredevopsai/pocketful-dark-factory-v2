@@ -567,13 +567,19 @@ def lifecycle_in(st, a, lc, need):
             a["_caps"].append((parse_ts(t), integral(amt)))
         a["_close"] = parse_ts(lc["close"]) if lc.get("close") is not None else None
     else:
-        a["_ct"], a["_init"] = a["_ts"], a["amount"]
-        for pid in a["payment_ids"]:
-            p = st.payment_ids.get(pid)
-            need(p is not None, "capture payment")
-            a["_caps"].append((p["_ts"], p["amount"]))
-        if a["status"] in ("captured", "voided"):
-            a["_close"] = max([a["_ts"]] + [t for t, _ in a["_caps"]])
+        # Stage-1/2 export: no lifecycle. Only a hold still open now, whose deadline is after its creation, is
+        # reconstructed (creation + capture payments). An already-closed hold may have been seeded closed and
+        # never held anything, so it contributes nothing to any historical view.
+        a["_ct"], a["_init"] = None, 0
+        if a["status"] == "open" and a["_exp"] > a["_ts"]:
+            a["_ct"], a["_init"] = a["_ts"], a["amount"]
+            for pid in a["payment_ids"]:
+                p = st.payment_ids.get(pid)
+                need(p is not None, "capture payment")
+                a["_caps"].append((p["_ts"], p["amount"]))
+        elif a["status"] in ("captured", "voided"):
+            caps = [st.payment_ids[pid]["_ts"] for pid in a["payment_ids"] if pid in st.payment_ids]
+            a["_close"] = max([a["_ts"]] + caps)  # closed_at = latest known event
     if a.get("closed_at") is None and a["status"] != "open":
         a["closed_at"] = a["expires_at"] if a["status"] == "expired" else iso(a["_close"] or a["_ts"])
     if a["status"] == "open":
@@ -846,21 +852,26 @@ def payment_events(st, uid, known, override=None):
 
 
 def hold_events(st, uid, known):
-    """(time, change in held) for the user's holds as known at `known` (None = all known)."""
+    """(time, change in held) for the user's holds as known at `known` (None = all known).
+
+    Held is never negative: a hold whose close (or deadline) is not after its creation contributes nothing.
+    """
     out = []
     for a in st.user_auths.get(uid, ()):
         ct = a.get("_ct")
         if ct is None or (known is not None and ct > known):
-            continue  # seeded closed hold without a lifecycle, or creation not yet known
-        out.append((ct, a["_init"]))
-        captured = 0
-        for t, amt in a["_caps"]:
-            if known is None or t <= known:
-                out.append((t, -amt))
-                captured += amt
+            continue  # no lifecycle (seeded/imported closed hold), or creation not yet known
         close = a.get("_close")
         if close is None or (known is not None and close > known):
             close = a["_exp"]  # as far as this view knows, the hold runs to its deadline
+        if close <= ct:
+            continue
+        out.append((ct, a["_init"]))
+        captured = 0
+        for t, amt in a["_caps"]:
+            if (known is None or t <= known) and t <= close:
+                out.append((t, -amt))
+                captured += amt
         if a["_init"] - captured > 0:
             out.append((close, -(a["_init"] - captured)))
     return out

@@ -1,0 +1,5071 @@
+{
+ "seed": 1029,
+ "divergence": {
+  "step": 270,
+  "op": {
+   "t": "call",
+   "method": "GET",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_ada",
+    "ord": 1
+   },
+   "body": null,
+   "query": ""
+  },
+  "reason": "authorizations[6].payment_id: expected id 'p_51' (model mp30), got 'p_53'",
+  "model": "Result(200, {'authorizations': [{'authorization_id': 'ma71', 'from_user_id': 'u_dee', 'from_handle': 'dee', 'to_user_id': 'u_ada', 'to_handle': 'ada', 'amount': 231, 'captured_amount': 0, 'currency': 'BHD', 'note': '', 'visibility': 'public', 'status': 'expired', 'expires_at': '2026-10-04T18:35:23.177165+00:00', 'payment_id': None, 'payment_ids': [], 'remaining_amount': 0, 'created_at': '2026-10-04T18:35:20.177165+00:00', 'closed_at': '2026-10-04T18:35:23.177165+00:00'}, {'authorization_id': 'ma70', 'from_user_id': 'u_ada', 'from_handle': 'ada', 'to_user_id': 'u_dee', 'to_handle': 'dee', 'amou",
+  "sent": {
+   "path": "/authorizations",
+   "query": "",
+   "body": null
+  },
+  "product": {
+   "status": 200,
+   "raw": "{\"authorizations\": [{\"authorization_id\": \"a_131\", \"from_user_id\": \"u_dee\", \"from_handle\": \"dee\", \"to_user_id\": \"u_ada\", \"to_handle\": \"ada\", \"amount\": 231, \"captured_amount\": 0, \"currency\": \"BHD\", \"note\": \"\", \"visibility\": \"public\", \"status\": \"expired\", \"expires_at\": \"2026-10-04T18:35:23.177165+00:00\", \"payment_id\": null, \"payment_ids\": [], \"created_at\": \"2026-10-04T18:35:20.177165+00:00\", \"closed_at\": \"2026-10-04T18:35:23.177165+00:00\", \"remaining_amount\": 0}, {\"authorization_id\": \"a_129\", \"from_user_id\": \"u_ada\", \"from_handle\": \"ada\", \"to_user_id\": \"u_dee\", \"to_handle\": \"dee\", \"amount\": 6459, \"captured_amount\": 0, \"currency\": \"BHD\", \"note\": \"\", \"visibility\": \"public\", \"status\": \"expired\", \"expires_at\": \"2026-10-04T18:35:20.580232+00:00\", \"payment_id\": null, \"payment_ids\": [], \"created_at\": \"2026-10-04T18:35:17.580232+00:00\", \"closed_at\": \"2026-10-04T18:35:20.580232+00:00\", \"remaining_amount\": 0}, {\"authorization_id\": \"a_114\", \"from_user_id\": \"u_ada\", \"from_handle\": \"ada\", \"to_user_id\": \"u_bob\", \"to_handle\": \"bob\", \"amount\": 4380, \"captured_amount\": 1155, \"currency\": \"BHD\", \"note\": \"  spaced  \", \"visibility\": \"private\", \"status\": \"captured\", \"expires_at\": \"2026-10-04T18:35:17.771263+00:00\", \"payment_id\": \"p_116\", \"payment_ids\": [\"p_116\"], \"created_at\": \"2026-10-04T18:35:14.771263+00:00\", \"closed_at\": \"2026-10-04T18:35:14.787935+00:00\", \"remaining_amount\": 0}, {\"authorization_id\": \"a_108\", \"from_user_id\": \"u_57\", \"from_handle\": \"new_user58_tag\", \"to_user_id\": \"u_ada\", \"to_handle\": \"ada\", \"amount\": 5, \"captured_amount\": 0, \"currency\": \"BHD\", \"note\": \"dl-118\", \"visibility\": \"public\", \"status\": \"voided\", \"expires_at\": \"2026-10-04T18:35:14.588385+00:00\", \"payment_id\": null, \"payment_ids\": [], \"created_at\": \"2026-10-04T18:35:11.588385+00:00\", \"closed_at\": \"2026-10-04T18:35:14.550457+00:00\", \"remaining_amount\": 0}, {\"authorization_id\": \"a_106\", \"from_user_id\": \"u_bob\", \"from_handle\": \"bob\", \"to_user_id\": \"u_ada\", \"to_handle\": \"ada\", \"amount\": 2338, \"captured_amount\": 0, \"c",
+   "err": null
+  }
+ },
+ "first_divergence": {
+  "step": 270,
+  "op": {
+   "t": "call",
+   "method": "GET",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_ada",
+    "ord": 1
+   },
+   "body": null,
+   "query": ""
+  },
+  "reason": "authorizations[6].payment_id: expected id 'p_51' (model mp30), got 'p_53'",
+  "model": "Result(200, {'authorizations': [{'authorization_id': 'ma71', 'from_user_id': 'u_dee', 'from_handle': 'dee', 'to_user_id': 'u_ada', 'to_handle': 'ada', 'amount': 231, 'captured_amount': 0, 'currency': 'BHD', 'note': '', 'visibility': 'public', 'status': 'expired', 'expires_at': '2026-10-04T18:34:47.085770+00:00', 'payment_id': None, 'payment_ids': [], 'remaining_amount': 0, 'created_at': '2026-10-04T18:34:44.085770+00:00', 'closed_at': '2026-10-04T18:34:47.085770+00:00'}, {'authorization_id': 'ma70', 'from_user_id': 'u_ada', 'from_handle': 'ada', 'to_user_id': 'u_dee', 'to_handle': 'dee', 'amou",
+  "sent": {
+   "path": "/authorizations",
+   "query": "",
+   "body": null
+  },
+  "product": {
+   "status": 200,
+   "raw": "{\"authorizations\": [{\"authorization_id\": \"a_131\", \"from_user_id\": \"u_dee\", \"from_handle\": \"dee\", \"to_user_id\": \"u_ada\", \"to_handle\": \"ada\", \"amount\": 231, \"captured_amount\": 0, \"currency\": \"BHD\", \"note\": \"\", \"visibility\": \"public\", \"status\": \"expired\", \"expires_at\": \"2026-10-04T18:34:47.085770+00:00\", \"payment_id\": null, \"payment_ids\": [], \"created_at\": \"2026-10-04T18:34:44.085770+00:00\", \"closed_at\": \"2026-10-04T18:34:47.085770+00:00\", \"remaining_amount\": 0}, {\"authorization_id\": \"a_129\", \"from_user_id\": \"u_ada\", \"from_handle\": \"ada\", \"to_user_id\": \"u_dee\", \"to_handle\": \"dee\", \"amount\": 6459, \"captured_amount\": 0, \"currency\": \"BHD\", \"note\": \"\", \"visibility\": \"public\", \"status\": \"expired\", \"expires_at\": \"2026-10-04T18:34:44.495347+00:00\", \"payment_id\": null, \"payment_ids\": [], \"created_at\": \"2026-10-04T18:34:41.495347+00:00\", \"closed_at\": \"2026-10-04T18:34:44.495347+00:00\", \"remaining_amount\": 0}, {\"authorization_id\": \"a_114\", \"from_user_id\": \"u_ada\", \"from_handle\": \"ada\", \"to_user_id\": \"u_bob\", \"to_handle\": \"bob\", \"amount\": 4380, \"captured_amount\": 1155, \"currency\": \"BHD\", \"note\": \"  spaced  \", \"visibility\": \"private\", \"status\": \"captured\", \"expires_at\": \"2026-10-04T18:34:41.686376+00:00\", \"payment_id\": \"p_116\", \"payment_ids\": [\"p_116\"], \"created_at\": \"2026-10-04T18:34:38.686376+00:00\", \"closed_at\": \"2026-10-04T18:34:38.703927+00:00\", \"remaining_amount\": 0}, {\"authorization_id\": \"a_108\", \"from_user_id\": \"u_57\", \"from_handle\": \"new_user58_tag\", \"to_user_id\": \"u_ada\", \"to_handle\": \"ada\", \"amount\": 5, \"captured_amount\": 0, \"currency\": \"BHD\", \"note\": \"dl-118\", \"visibility\": \"public\", \"status\": \"voided\", \"expires_at\": \"2026-10-04T18:34:38.505433+00:00\", \"payment_id\": null, \"payment_ids\": [], \"created_at\": \"2026-10-04T18:34:35.505433+00:00\", \"closed_at\": \"2026-10-04T18:34:38.467321+00:00\", \"remaining_amount\": 0}, {\"authorization_id\": \"a_106\", \"from_user_id\": \"u_bob\", \"from_handle\": \"bob\", \"to_user_id\": \"u_ada\", \"to_handle\": \"ada\", \"amount\": 2338, \"captured_amount\": 0, \"c",
+   "err": null
+  }
+ },
+ "minimal_ops": [
+  {
+   "t": "reset",
+   "fixture": {
+    "currency": "BHD",
+    "minor_units": 3,
+    "users": [
+     {
+      "id": "u_ada",
+      "email": "ada@example.com",
+      "password": "correct horse",
+      "display_name": "Ada",
+      "handle": "ada",
+      "balance": 9900
+     },
+     {
+      "id": "u_bob",
+      "email": "bob@example.com",
+      "password": "correct horse",
+      "display_name": "Bob",
+      "handle": "bob",
+      "balance": 2499
+     },
+     {
+      "id": "u_cy",
+      "email": "cy@example.com",
+      "password": "correct horse",
+      "display_name": "Cy",
+      "handle": "cy",
+      "balance": 2601
+     },
+     {
+      "id": "u_dee",
+      "email": "zed.x@example.com",
+      "password": "correct horse",
+      "display_name": "Dee",
+      "handle": "dee",
+      "balance": 2500
+     }
+    ],
+    "payments": [
+     {
+      "id": "p_s0",
+      "from_user_id": "u_ada",
+      "to_user_id": "u_bob",
+      "amount": 100,
+      "note": "seed",
+      "visibility": "private",
+      "created_at": {
+       "$rel": -259200,
+       "off": 120
+      }
+     },
+     {
+      "id": "p_s1",
+      "from_user_id": "u_bob",
+      "to_user_id": "u_cy",
+      "amount": 101,
+      "note": "seed",
+      "visibility": "private",
+      "created_at": {
+       "$rel": -60,
+       "off": 120
+      }
+     }
+    ],
+    "requests": [
+     {
+      "id": "rq_s0",
+      "requester_id": "u_bob",
+      "payer_id": "u_ada",
+      "amount": 99999,
+      "note": "seed",
+      "status": "pending"
+     },
+     {
+      "id": "rq_s1",
+      "requester_id": "u_cy",
+      "payer_id": "u_bob",
+      "amount": 1200,
+      "note": "seed",
+      "status": "pending"
+     },
+     {
+      "id": "rq_s2",
+      "requester_id": "u_dee",
+      "payer_id": "u_cy",
+      "amount": 5,
+      "note": "seed",
+      "status": "paid"
+     }
+    ],
+    "settlement_operator_ids": [
+     "u_ada"
+    ],
+    "authorization_ttl_seconds": 3,
+    "authorizations": [
+     {
+      "id": "a_s0",
+      "from_user_id": "u_ada",
+      "to_user_id": "u_bob",
+      "amount": 3300,
+      "note": "seeded hold",
+      "visibility": "private",
+      "status": "open",
+      "expires_at": {
+       "$rel": 6426
+      }
+     }
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_ada",
+    "ord": 2
+   },
+   "body": "{\"to_handle\": \"bob\", \"amount\": 1, \"note\": \"lc-capture\"}",
+   "query": "",
+   "key": "lc-capture-0"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_ada",
+    "ord": 3
+   },
+   "body": "{\"to_handle\": \"bob\", \"amount\": 1, \"note\": \"lc-void\"}",
+   "query": "",
+   "key": "lc-void-0"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations/{ref}/capture",
+   "auth": {
+    "user": "u_bob",
+    "ord": 2
+   },
+   "body": "{}",
+   "query": "",
+   "ref": "ma5",
+   "refns": "a",
+   "key": "lc-cap-0"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations/{ref}/void",
+   "auth": {
+    "user": "u_ada",
+    "ord": 4
+   },
+   "body": null,
+   "query": "",
+   "ref": "ma6",
+   "refns": "a"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_ada",
+    "ord": 1
+   },
+   "body": "{\"to_handle\": \"bob\", \"amount\": 1, \"note\": \"lc-expire\"}",
+   "query": "",
+   "key": "lc-expire-0"
+  },
+  {
+   "t": "sleep",
+   "s": 4.5
+  },
+  {
+   "t": "export"
+  },
+  {
+   "t": "import",
+   "variant": "good"
+  },
+  {
+   "t": "travel",
+   "views": [
+    [
+     [
+      "ev",
+      [
+       "a",
+       "ma5",
+       "c"
+      ],
+      1,
+      0
+     ],
+     null
+    ],
+    [
+     [
+      "ev",
+      [
+       "a",
+       "ma6",
+       "c"
+      ],
+      1,
+      0
+     ],
+     null
+    ],
+    [
+     [
+      "ev",
+      [
+       "a",
+       "ma8",
+       "c"
+      ],
+      1,
+      0
+     ],
+     null
+    ]
+   ]
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/refunds",
+   "auth": {
+    "user": "u_cy",
+    "ord": 2
+   },
+   "body": "{\"unknown_field\":{\"x\":[1,2]},\"amount\":1}",
+   "query": "",
+   "ref": "p_s1",
+   "key": "k1",
+   "refns": "p"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/me",
+   "auth": {
+    "user": "u_bob",
+    "ord": 7
+   },
+   "body": null,
+   "query": "as_of=@as_of@",
+   "inst": {
+    "as_of": [
+     "now",
+     -3600,
+     0
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments",
+   "auth": {
+    "user": "u_bob",
+    "ord": 4
+   },
+   "body": "{\"amount\":1000000000,\"to_handle\":\"ada\",\"note\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+   "query": "",
+   "key": "k2"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/refunds",
+   "auth": {
+    "user": "u_bob",
+    "ord": 5
+   },
+   "body": "{\"amount\":8}",
+   "query": "",
+   "ref": "p_unknown",
+   "key": "k3",
+   "refns": "p"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments",
+   "auth": {
+    "user": "u_cy",
+    "ord": 7
+   },
+   "body": "{\"to_handle\":\"ada\",\"visibility\":\"private\",\"amount\":923,\"note\":\"dinner\"}",
+   "query": "",
+   "key": "k4"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/splits",
+   "auth": {
+    "user": "u_bob",
+    "ord": 0
+   },
+   "body": "{\"participant_handles\":[\"bob\", \"ada\"],\"amount\":84089}",
+   "query": "",
+   "key": "k5"
+  },
+  {
+   "t": "sleep",
+   "s": 1.37
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/refunds",
+   "auth": {
+    "user": "u_ada",
+    "ord": 1
+   },
+   "body": "{\"unknown_field\":{\"x\":[1,2]},\"amount\":414}",
+   "query": "",
+   "ref": "mp10",
+   "key": "k6",
+   "refns": "p"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests",
+   "auth": {
+    "user": "u_bob",
+    "ord": 7
+   },
+   "body": "{\"amount\":2,\"payer_handle\":\"dee\",\"note\":\"\\ud83c\\udf55 caf\\u00e9 \\u00f1 \\\"q\\\" <b>\"}",
+   "query": "",
+   "key": "k7"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_cy",
+    "ord": 1
+   },
+   "body": "{\"expected_revision\":2,\"amount\":1138,\"reason\":\"fix\",\"effective_at\":\"@eff@\"}",
+   "query": "",
+   "ref": "mp10",
+   "key": "k8",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "ev",
+     [
+      "p",
+      "mp9"
+     ],
+     -1,
+     -180
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_bob",
+    "ord": 5
+   },
+   "body": "{\"amount\":1000000001,\"expected_revision\":1,\"reason\":\"fix\"}",
+   "query": "",
+   "ref": "p_s1",
+   "key": "k9",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "abs",
+     "1990-01-01T00:00:00Z"
+    ]
+   }
+  },
+  {
+   "t": "sleep",
+   "s": 1.54
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_bob",
+    "ord": 5
+   },
+   "body": "{\"reason\":\"fix\",\"effective_at\":\"@eff@\",\"expected_revision\":1,\"amount\":1000000001}",
+   "query": "",
+   "ref": "p_s1",
+   "key": "k10",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "abs",
+     "1990-01-01T00:00:00Z"
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/refunds",
+   "auth": {
+    "user": "u_bob",
+    "ord": 7
+   },
+   "body": "{\"amount\": 50}",
+   "query": "",
+   "ref": "p_s0",
+   "refns": "p",
+   "key": "rr-11"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_ada",
+    "ord": 6
+   },
+   "body": "{\"expected_revision\": 1, \"amount\": 49, \"reason\": \"below refunds\", \"effective_at\": \"@eff@\"}",
+   "query": "",
+   "ref": "p_s0",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "ev",
+     [
+      "p",
+      "p_s0"
+     ],
+     0,
+     0
+    ]
+   },
+   "key": "rr-12"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/refunds",
+   "auth": {
+    "user": "u_bob",
+    "ord": 6
+   },
+   "body": "{\"amount\": 51}",
+   "query": "",
+   "ref": "p_s0",
+   "refns": "p",
+   "key": "rr-13"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_bob",
+    "ord": 2
+   },
+   "body": "{\"to_handle\": \"ada\", \"amount\": 2451, \"note\": \"rr-hold-p_s0\"}",
+   "query": "",
+   "key": "rr-14"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/refunds",
+   "auth": {
+    "user": "u_bob",
+    "ord": 5
+   },
+   "body": "{\"amount\": 1}",
+   "query": "",
+   "ref": "p_s0",
+   "refns": "p",
+   "key": "rr-15"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/refunds",
+   "auth": {
+    "user": "u_ada",
+    "ord": 7
+   },
+   "body": "{\"amount\":1}",
+   "query": "",
+   "ref": "mp15",
+   "refns": "p",
+   "key": "rr-16"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations/{ref}/void",
+   "auth": {
+    "user": "u_bob",
+    "ord": 1
+   },
+   "body": null,
+   "query": "",
+   "ref": "ma16",
+   "refns": "a"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_ada",
+    "ord": 0
+   },
+   "body": "{\"to_handle\":\"bob\",\"amount\":1794,\"visibility\":\"private\"}",
+   "query": "",
+   "key": "k17"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments",
+   "auth": {
+    "user": "u_cy",
+    "ord": 4
+   },
+   "body": "{\"note\":\"  spaced  \",\"visibility\":\"private\",\"to_handle\":\"dee\",\"amount\":1000000001}",
+   "query": "",
+   "key": "k18"
+  },
+  {
+   "t": "export"
+  },
+  {
+   "t": "sleep",
+   "s": 0.51
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_ada",
+    "ord": 5
+   },
+   "body": "{\"to_handle\":\"dee\",\"amount\":1135,\"visibility\":\"private\"}",
+   "query": "",
+   "key": "k19"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments",
+   "auth": {
+    "user": "u_ada",
+    "ord": 6
+   },
+   "body": "{\"visibility\":\"private\",\"to_handle\":\"cy\",\"amount\":4378}",
+   "query": "",
+   "key": "k20"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/auth/login",
+   "auth": null,
+   "body": "{\"email\": \"cy@example.com\", \"password\": \"correct horse\"}",
+   "query": "",
+   "after": "session"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_cy",
+    "ord": 2
+   },
+   "body": "{\"to_handle\":\"dee\",\"amount\":147,\"visibility\":\"private\"}",
+   "query": "",
+   "key": "k21"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests",
+   "auth": {
+    "user": "u_ada",
+    "ord": 7
+   },
+   "body": "{\"note\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"amount\":2,\"payer_handle\":\"cy\"}",
+   "query": "",
+   "key": "k22"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments",
+   "auth": {
+    "user": "u_ada",
+    "ord": 3
+   },
+   "body": "{\"to_handle\":\"bob\",\"amount\":1139,\"note\":null,\"visibility\":\"private\"}",
+   "query": "",
+   "key": "k23"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/activity",
+   "auth": {
+    "user": "u_cy",
+    "ord": 4
+   },
+   "body": null,
+   "query": "limit=3&offset=2"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_ada",
+    "ord": 5
+   },
+   "body": null,
+   "query": "unknown=1"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_cy",
+    "ord": 4
+   },
+   "body": "{\"expected_revision\": 2, \"amount\": 1138, \"reason\": \"fix\", \"effective_at\": \"@eff@\", \"note\": \"changed\"}",
+   "query": "",
+   "ref": "mp10",
+   "key": "k8",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "ev",
+     [
+      "p",
+      "mp9"
+     ],
+     -1,
+     -180
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/payments/{ref}/revisions",
+   "auth": {
+    "user": "u_bob",
+    "ord": 3
+   },
+   "body": null,
+   "query": "",
+   "ref": "mp7",
+   "refns": "p"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_ada",
+    "ord": 4
+   },
+   "body": "{\"amount\":0,\"reason\":\"fix\",\"expected_revision\":1.5,\"effective_at\":\"@eff@\"}",
+   "query": "",
+   "ref": "mp10",
+   "key": "k24",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "raw",
+     "yesterday"
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 0
+   },
+   "body": "{\"corrections\":[{\"payment_id\":\"@P:p_s0@\",\"amount\":121,\"expected_revision\":1,\"effective_at\":\"@e0@\",\"reason\":\"batch fix\"}]}",
+   "query": "",
+   "key": "k25",
+   "inst": {
+    "e0": [
+     "ev",
+     [
+      "a",
+      "ma16",
+      "c"
+     ],
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations/{ref}/void",
+   "auth": {
+    "user": "u_ada",
+    "ord": 4
+   },
+   "body": null,
+   "query": "",
+   "ref": "ma6",
+   "refns": "a"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests",
+   "auth": {
+    "user": "u_bob",
+    "ord": 4
+   },
+   "body": "{\"payer_handle\":\"dee\"}",
+   "query": "",
+   "key": "k26"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_ada",
+    "ord": 2
+   },
+   "body": null,
+   "query": "limit=200"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_cy",
+    "ord": 5
+   },
+   "body": "{\"expected_revision\": 1, \"amount\": 922, \"reason\": \"snapshot stability\", \"effective_at\": \"@eff@\"}",
+   "query": "",
+   "ref": "mp10",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "ev",
+     [
+      "p",
+      "mp10"
+     ],
+     0,
+     0
+    ]
+   },
+   "key": "ss-26"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments",
+   "auth": {
+    "user": "u_ada",
+    "ord": 4
+   },
+   "body": "{\"note\":7,\"amount\":\"100\",\"to_handle\":\"dee\",\"visibility\":\"PUBLIC\"}",
+   "query": "",
+   "key": "k28"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations/{ref}/capture",
+   "auth": {
+    "user": "u_dee",
+    "ord": 1
+   },
+   "body": "{\"amount\":122,\"final\":false}",
+   "query": "",
+   "ref": "ma20",
+   "key": "",
+   "refns": "a"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations/{ref}/void",
+   "auth": {
+    "user": "u_ada",
+    "ord": 2
+   },
+   "body": null,
+   "query": "",
+   "ref": "a_s0",
+   "refns": "a"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_ada",
+    "ord": 3
+   },
+   "body": "{\"expected_revision\": 2, \"amount\": 120, \"reason\": \"snapshot stability\", \"effective_at\": \"@eff@\"}",
+   "query": "",
+   "ref": "p_s0",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "ev",
+     [
+      "r",
+      "p_s0",
+      2
+     ],
+     0,
+     0
+    ]
+   },
+   "key": "ss-29"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_ada",
+    "ord": 3
+   },
+   "body": null,
+   "query": "snapshot=@SNAP@&limit=1&offset=0",
+   "snap": "msnap13"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_ada",
+    "ord": 2
+   },
+   "body": null,
+   "query": "snapshot=@SNAP@&limit=1&offset=1",
+   "snap": "msnap13"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_ada",
+    "ord": 0
+   },
+   "body": null,
+   "query": "snapshot=@SNAP@&limit=1&offset=2",
+   "snap": "msnap13"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_ada",
+    "ord": 3
+   },
+   "body": null,
+   "query": "snapshot=@SNAP@&limit=1&offset=3",
+   "snap": "msnap13"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_ada",
+    "ord": 6
+   },
+   "body": null,
+   "query": "snapshot=@SNAP@&limit=1&offset=4",
+   "snap": "msnap13"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_ada",
+    "ord": 1
+   },
+   "body": null,
+   "query": "snapshot=@SNAP@&limit=1&offset=5",
+   "snap": "msnap13"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_ada",
+    "ord": 1
+   },
+   "body": null,
+   "query": "snapshot=@SNAP@&limit=200&offset=0",
+   "snap": "msnap13"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_ada",
+    "ord": 7
+   },
+   "body": null,
+   "query": "snapshot=@SNAP@&limit=2&offset=1",
+   "snap": "msnap13"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_cy",
+    "ord": 7
+   },
+   "body": "{\"to_handle\":\"dee\",\"amount\":1597,\"visibility\":\"private\"}",
+   "query": "",
+   "key": "k31"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 1
+   },
+   "body": "{\"corrections\":[{\"expected_revision\":3,\"effective_at\":\"@e0@\",\"amount\":49,\"reason\":\"batch fix\",\"payment_id\":\"@P:p_s0@\"}]}",
+   "query": "",
+   "key": "k32",
+   "inst": {
+    "e0": [
+     "ev",
+     [
+      "a",
+      "ma5",
+      "c"
+     ],
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/requests",
+   "auth": {
+    "user": "u_cy",
+    "ord": 1
+   },
+   "body": null,
+   "query": "offset=x"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_dee",
+    "ord": 1
+   },
+   "body": "{\"to_handle\":5,\"visibility\":\"private\",\"note\":\"dinner\"}",
+   "query": "",
+   "key": "k33"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/me",
+   "auth": {
+    "user": "u_ada",
+    "ord": 1
+   },
+   "body": null,
+   "query": "as_of=@as_of@",
+   "inst": {
+    "as_of": [
+     "ev",
+     [
+      "a",
+      "ma21",
+      "v"
+     ],
+     1000,
+     60
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations/{ref}/capture",
+   "auth": {
+    "user": "u_dee",
+    "ord": 4
+   },
+   "body": "{\"amount\":522,\"final\":false}",
+   "query": "",
+   "ref": "ma18",
+   "key": "k34",
+   "refns": "a"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/settlements",
+   "auth": {
+    "user": "u_ada",
+    "ord": 1
+   },
+   "body": "{\"transfers\":[{\"amount\":10129,\"from_handle\":\"ada\",\"note\":\"\",\"to_handle\":\"cy\"},{\"amount\":1370,\"to_handle\":\"ada\",\"from_handle\":\"dee\"},{\"to_handle\":\"cy\",\"amount\":1088,\"from_handle\":\"bob\"},{\"visibility\":\"private\",\"to_handle\":\"dee\",\"amount\":284,\"from_handle\":\"ada\"},{\"from_handle\":\"bob\",\"to_handle\":\"ada\",\"amount\":210},{\"to_handle\":\"bob\",\"note\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"amount\":42,\"from_handle\":\"dee\"}]}",
+   "query": "",
+   "key": "k35"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations/{ref}/capture",
+   "auth": {
+    "user": "u_dee",
+    "ord": 4
+   },
+   "body": "{\"final\":\"no\"}",
+   "query": "",
+   "ref": "ma18",
+   "key": "k36",
+   "refns": "a"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "raw": "Bearer "
+   },
+   "body": null,
+   "query": ""
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/me",
+   "auth": {
+    "user": "u_ada",
+    "ord": 2
+   },
+   "body": null,
+   "query": "known_at=@known_at@",
+   "inst": {
+    "known_at": [
+     "abs",
+     "2001-02-03T04:05:06.5+01:00"
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/settlements",
+   "auth": {
+    "user": "u_ada",
+    "ord": 2
+   },
+   "body": "{\"transfers\": [{\"from_handle\": \"ada\", \"to_handle\": \"dee\", \"amount\": 1000, \"note\": \"sb-38\"}, {\"from_handle\": \"ada\", \"to_handle\": \"bob\", \"amount\": 1000, \"note\": \"sb-38\"}]}",
+   "query": "",
+   "key": "sb-38"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 2
+   },
+   "body": "{\"corrections\":[{\"expected_revision\":1,\"payment_id\":\"@P:mp24@\",\"amount\":1,\"reason\":\"batch fix\",\"effective_at\":\"@s@\"}]}",
+   "query": "",
+   "inst": {
+    "s": [
+     "ev",
+     [
+      "p",
+      "mp24"
+     ],
+     0,
+     0
+    ],
+    "s2": [
+     "ev",
+     [
+      "p",
+      "mp24"
+     ],
+     0,
+     60
+    ],
+    "x": [
+     "now",
+     -60,
+     0
+    ]
+   },
+   "key": "sb-38-incomplete"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 1
+   },
+   "body": "{\"corrections\":[{\"payment_id\":\"@P:mp24@\",\"effective_at\":\"@s@\",\"reason\":\"batch fix\",\"amount\":0,\"expected_revision\":1},{\"unknown_field\":{\"x\":[1,2]},\"amount\":0,\"payment_id\":\"@P:mp25@\",\"expected_revision\":1,\"effective_at\":\"@x@\",\"reason\":\"batch fix\"}]}",
+   "query": "",
+   "inst": {
+    "s": [
+     "abs",
+     "2001-02-03T04:05:06.5+01:00"
+    ],
+    "s2": [
+     "abs",
+     "2001-02-03T03:05:06.5Z"
+    ],
+    "x": [
+     "now",
+     -60,
+     0
+    ]
+   },
+   "key": "sb-38-unequal"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_ada",
+    "ord": 7
+   },
+   "body": "{\"expected_revision\":1,\"effective_at\":\"@eff@\",\"reason\":\"fix\",\"amount\":858}",
+   "query": "",
+   "ref": "mp24",
+   "key": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "abs",
+     "2001-02-03T04:05:06.5+01:00"
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 7
+   },
+   "body": "{\"corrections\":[{\"amount\":1,\"payment_id\":\"@P:mp24@\",\"effective_at\":\"@s@\",\"reason\":\"batch fix\",\"expected_revision\":1},{\"effective_at\":\"@s2@\",\"payment_id\":\"@P:mp25@\",\"expected_revision\":1,\"amount\":0,\"unknown_field\":{\"x\":[1,2]},\"reason\":\"batch fix\"}]}",
+   "query": "",
+   "inst": {
+    "s": [
+     "ev",
+     [
+      "p",
+      "mp24"
+     ],
+     0,
+     0
+    ],
+    "s2": [
+     "ev",
+     [
+      "p",
+      "mp24"
+     ],
+     0,
+     330
+    ],
+    "x": [
+     "now",
+     -60,
+     0
+    ]
+   },
+   "key": "sb-38-ok"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/refunds",
+   "auth": {
+    "user": "u_bob",
+    "ord": 1
+   },
+   "body": "{\"amount\":1}",
+   "query": "",
+   "ref": "mp25",
+   "key": "k40",
+   "refns": "p"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 7
+   },
+   "body": "{\"corrections\":[{\"amount\":1,\"payment_id\":\"@P:mp24@\",\"effective_at\":\"@s@\",\"reason\":\"batch fix\",\"expected_revision\":1},{\"effective_at\":\"@s2@\",\"payment_id\":\"@P:mp25@\",\"expected_revision\":1,\"amount\":0,\"unknown_field\":{\"x\":[1,2]},\"reason\":\"batch fix\"}]}",
+   "query": "",
+   "inst": {
+    "s": [
+     "ev",
+     [
+      "p",
+      "mp24"
+     ],
+     0,
+     0
+    ],
+    "s2": [
+     "ev",
+     [
+      "p",
+      "mp24"
+     ],
+     0,
+     330
+    ],
+    "x": [
+     "now",
+     -60,
+     0
+    ]
+   },
+   "key": "sb-38-ok"
+  },
+  {
+   "t": "export"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_cy",
+    "ord": 7
+   },
+   "body": "{\"effective_at\":\"@eff@\",\"amount\":922,\"reason\":\"fix\",\"unknown_field\":{\"x\":[1,2]},\"expected_revision\":1}",
+   "query": "",
+   "ref": "mp10",
+   "key": "k41",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "now",
+     -3600,
+     330
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_bob",
+    "ord": 5
+   },
+   "body": "{\"to_handle\":\"cy\",\"amount\":1515}",
+   "query": "",
+   "key": "k42"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/me",
+   "auth": {
+    "user": "u_dee",
+    "ord": 1
+   },
+   "body": null,
+   "query": "as_of=@as_of@&known_at=@known_at@",
+   "inst": {
+    "as_of": [
+     "ev",
+     [
+      "a",
+      "a_s0",
+      "c"
+     ],
+     -1000000,
+     -180
+    ],
+    "known_at": [
+     "abs",
+     "2001-02-03T04:05:06.5+01:00"
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests/{ref}/cancel",
+   "auth": {
+    "user": "u_ada",
+    "ord": 4
+   },
+   "body": null,
+   "query": "",
+   "ref": "mrq11"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments",
+   "auth": {
+    "user": "u_ada",
+    "ord": 3
+   },
+   "body": "{\"visibility\":\"PUBLIC\",\"to_handle\":\"bob\",\"amount\":12.5}",
+   "query": "",
+   "key": "k43"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_cy",
+    "ord": 6
+   },
+   "body": null,
+   "query": "from=@from@&limit=+4",
+   "inst": {
+    "from": [
+     "ev",
+     [
+      "a",
+      "ma16",
+      "c"
+     ],
+     -1000,
+     330
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/me",
+   "auth": {
+    "user": "u_bob",
+    "ord": 0
+   },
+   "body": null,
+   "query": "as_of=@as_of@",
+   "inst": {
+    "as_of": [
+     "ev",
+     [
+      "rr",
+      "mp24",
+      2
+     ],
+     -3600000000,
+     -180
+    ]
+   }
+  },
+  {
+   "t": "travel",
+   "views": [
+    [
+     [
+      "ev",
+      [
+       "a",
+       "ma21",
+       "v"
+      ],
+      -1000000,
+      0
+     ],
+     null
+    ]
+   ]
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/settlements",
+   "auth": {
+    "user": "u_ada",
+    "ord": 5
+   },
+   "body": "{\"transfers\":[{\"to_handle\":\"ada\",\"amount\":196,\"from_handle\":\"bob\"},{\"from_handle\":\"ada\",\"visibility\":null,\"amount\":10085,\"to_handle\":\"bob\"},{\"to_handle\":\"cy\",\"from_handle\":\"dee\",\"amount\":1213}]}",
+   "query": "",
+   "key": "k44"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests",
+   "auth": {
+    "user": "u_dee",
+    "ord": 3
+   },
+   "body": "{\"payer_handle\":\"BOB\",\"amount\":80138483}",
+   "query": "",
+   "key": "k45"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations/{ref}/capture",
+   "auth": {
+    "user": "u_bob",
+    "ord": 0
+   },
+   "body": "{\"final\":\"no\"}",
+   "query": "",
+   "ref": "ma17",
+   "key": "k46",
+   "refns": "a"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_ada",
+    "ord": 5
+   },
+   "body": "{\"to_handle\": \"dee\", \"amount\": 5, \"note\": \"dl-46\"}",
+   "query": "",
+   "key": "dl-46"
+  },
+  {
+   "t": "burst",
+   "ops": [
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/capture",
+     "auth": {
+      "user": "u_dee",
+      "ord": 6
+     },
+     "body": "{\"amount\":1,\"final\":false}",
+     "query": "",
+     "ref": "ma27",
+     "refns": "a",
+     "key": "dl-46-48"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/capture",
+     "auth": {
+      "user": "u_dee",
+      "ord": 3
+     },
+     "body": "{}",
+     "query": "",
+     "ref": "ma27",
+     "refns": "a",
+     "key": "dl-46-49"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/payments",
+     "auth": {
+      "user": "u_ada",
+      "ord": 3
+     },
+     "body": "{\"to_handle\": \"dee\", \"amount\": 1}",
+     "query": "",
+     "key": "dl-46-50"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/capture",
+     "auth": {
+      "user": "u_dee",
+      "ord": 4
+     },
+     "body": "{\"amount\":1,\"final\":false}",
+     "query": "",
+     "ref": "ma27",
+     "refns": "a",
+     "key": "dl-46-51"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/capture",
+     "auth": {
+      "user": "u_dee",
+      "ord": 3
+     },
+     "body": "{\"amount\":1,\"final\":false}",
+     "query": "",
+     "ref": "ma27",
+     "refns": "a",
+     "key": "dl-46-52"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/void",
+     "auth": {
+      "user": "u_ada",
+      "ord": 7
+     },
+     "body": null,
+     "query": "",
+     "ref": "ma27",
+     "refns": "a"
+    }
+   ],
+   "deadline": {
+    "aid": "ma27",
+    "offsets": [
+     -0.02,
+     0.015,
+     0.006,
+     -0.04,
+     0.002,
+     0.04
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_dee",
+    "ord": 7
+   },
+   "body": null,
+   "query": "offset=x&to=@to@",
+   "inst": {
+    "to": [
+     "abs",
+     "2001-02-03T04:05:06.5+01:00"
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/settlements",
+   "auth": {
+    "user": "u_cy",
+    "ord": 1
+   },
+   "body": "{\"transfers\":[{\"to_handle\":\"bob\",\"visibility\":null,\"from_handle\":\"ada\",\"amount\":3836},{\"from_handle\":\"dee\",\"to_handle\":\"bob\",\"visibility\":\"PUBLIC\",\"amount\":1199},{\"visibility\":\"PUBLIC\",\"from_handle\":\"ada\",\"amount\":4899,\"to_handle\":\"bob\"},{\"from_handle\":\"cy\",\"amount\":355,\"to_handle\":\"ada\"},{\"from_handle\":\"nobody_here\",\"amount\":711,\"to_handle\":\"cy\"},{\"to_handle\":\"dee\",\"unknown_field\":{\"x\":[1,2]},\"from_handle\":\"cy\",\"amount\":475},{\"to_handle\":\"bob\",\"visibility\":null,\"from_handle\":\"ada\",\"amount\":3836},{\"from_handle\":\"dee\",\"to_handle\":\"bob\",\"visibility\":\"PUBLIC\",\"amount\":1199},{\"visibility\":\"PUBLIC\",\"from_handle\":\"ada\",\"amount\":4899,\"to_handle\":\"bob\"},{\"from_handle\":\"cy\",\"amount\":355,\"to_handle\":\"ada\"},{\"from_handle\":\"nobody_here\",\"amount\":711,\"to_handle\":\"cy\"},{\"to_handle\":\"dee\",\"unknown_field\":{\"x\":[1,2]},\"from_handle\":\"cy\",\"amount\":475},{\"to_handle\":\"bob\",\"visibility\":null,\"from_handle\":\"ada\",\"amount\":3836},{\"from_handle\":\"dee\",\"to_handle\":\"bob\",\"visibility\":\"PUBLIC\",\"amount\":1199},{\"visibility\":\"PUBLIC\",\"from_handle\":\"ada\",\"amount\":4899,\"to_handle\":\"bob\"},{\"from_handle\":\"cy\",\"amount\":355,\"to_handle\":\"ada\"},{\"from_handle\":\"nobody_here\",\"amount\":711,\"to_handle\":\"cy\"},{\"to_handle\":\"dee\",\"unknown_field\":{\"x\":[1,2]},\"from_handle\":\"cy\",\"amount\":475},{\"to_handle\":\"bob\",\"visibility\":null,\"from_handle\":\"ada\",\"amount\":3836},{\"from_handle\":\"dee\",\"to_handle\":\"bob\",\"visibility\":\"PUBLIC\",\"amount\":1199},{\"visibility\":\"PUBLIC\",\"from_handle\":\"ada\",\"amount\":4899,\"to_handle\":\"bob\"},{\"from_handle\":\"cy\",\"amount\":355,\"to_handle\":\"ada\"},{\"from_handle\":\"nobody_here\",\"amount\":711,\"to_handle\":\"cy\"},{\"to_handle\":\"dee\",\"unknown_field\":{\"x\":[1,2]},\"from_handle\":\"cy\",\"amount\":475},{\"to_handle\":\"bob\",\"visibility\":null,\"from_handle\":\"ada\",\"amount\":3836},{\"from_handle\":\"dee\",\"to_handle\":\"bob\",\"visibility\":\"PUBLIC\",\"amount\":1199},{\"visibility\":\"PUBLIC\",\"from_handle\":\"ada\",\"amount\":4899,\"to_handle\":\"bob\"},{\"from_handle\":\"cy\",\"amount\":355,\"to_handle\":\"ada\"},{\"from_handle\":\"nobody_here\",\"amount\":711,\"to_handle\":\"cy\"},{\"to_handle\":\"dee\",\"unknown_field\":{\"x\":[1,2]},\"from_handle\":\"cy\",\"amount\":475},{\"to_handle\":\"bob\",\"visibility\":null,\"from_handle\":\"ada\",\"amount\":3836},{\"from_handle\":\"dee\",\"to_handle\":\"bob\",\"visibility\":\"PUBLIC\",\"amount\":1199},{\"visibility\":\"PUBLIC\",\"from_handle\":\"ada\",\"amount\":4899,\"to_handle\":\"bob\"}]}",
+   "query": "",
+   "key": "k54"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments",
+   "auth": {
+    "user": "u_bob",
+    "ord": 4
+   },
+   "body": "",
+   "query": "",
+   "key": null
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_dee",
+    "ord": 1
+   },
+   "body": null,
+   "query": "offset=2&known_at=@known_at@&to=@to@&unknown=1&from=@from@",
+   "inst": {
+    "from": [
+     "now",
+     30,
+     330
+    ],
+    "to": [
+     "ev",
+     [
+      "a",
+      "ma26",
+      "x"
+     ],
+     -1000,
+     0
+    ],
+    "known_at": [
+     "ev",
+     [
+      "a",
+      "ma27",
+      "x"
+     ],
+     0,
+     -180
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_ada",
+    "ord": 1
+   },
+   "body": null,
+   "query": "limit=2",
+   "inst": {}
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/refunds",
+   "auth": {
+    "user": "u_bob",
+    "ord": 0
+   },
+   "body": "{\"amount\":1}",
+   "query": "",
+   "ref": "mp25",
+   "key": "k56",
+   "refns": "p"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations/{ref}/capture",
+   "auth": {
+    "user": "u_bob",
+    "ord": 2
+   },
+   "body": "{\"amount\":1.0}",
+   "query": "",
+   "ref": "ma5",
+   "key": "k57",
+   "refns": "a"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/auth/signup",
+   "auth": null,
+   "body": "{\"email\":\"New.User58+tag@Example.com\",\"display_name\":\"User 58\",\"password\":\"correct horse\"}",
+   "query": "",
+   "after": "session"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations/{ref}/capture",
+   "auth": {
+    "user": "u_bob",
+    "ord": 7
+   },
+   "body": "{\"amount\":1.0}",
+   "query": "",
+   "ref": "ma5",
+   "key": "k59",
+   "refns": "a"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests/{ref}/pay",
+   "auth": {
+    "user": "u_dee",
+    "ord": 4
+   },
+   "body": "{}",
+   "query": "",
+   "ref": "mrq14",
+   "key": "k60"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_cy",
+    "ord": 3
+   },
+   "body": "{\"expected_revision\":2,\"reason\":\"fix\",\"effective_at\":\"@eff@\"}",
+   "query": "",
+   "ref": "mp10",
+   "key": "k61",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "ev",
+     [
+      "a",
+      "ma21",
+      "c"
+     ],
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/activity",
+   "auth": {
+    "user": "u_ada",
+    "ord": 3
+   },
+   "body": null,
+   "query": ""
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_cy",
+    "ord": 1
+   },
+   "body": "null",
+   "query": "",
+   "key": ""
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_bob",
+    "ord": 6
+   },
+   "body": "{\"to_handle\":\"dee\",\"amount\":1043}",
+   "query": "",
+   "key": "k63"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_bob",
+    "ord": 3
+   },
+   "body": null,
+   "query": "from=@from@&known_at=@known_at@&unknown=1&to=@to@",
+   "inst": {
+    "from": [
+     "abs",
+     "2100-01-01T00:00:00Z"
+    ],
+    "to": [
+     "ev",
+     [
+      "a",
+      "ma27",
+      "v"
+     ],
+     1,
+     0
+    ],
+    "known_at": [
+     "ev",
+     [
+      "rr",
+      "p_s0",
+      2
+     ],
+     -1000000,
+     60
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/me",
+   "auth": {
+    "user": "u_cy",
+    "ord": 4
+   },
+   "body": null,
+   "query": "as_of=@as_of@",
+   "inst": {
+    "as_of": [
+     "ev",
+     [
+      "p",
+      "mp29"
+     ],
+     0,
+     60
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_dee",
+    "ord": 2
+   },
+   "body": "{\"to_handle\": \"ada\", \"amount\": 5, \"note\": \"dl-63\"}",
+   "query": "",
+   "key": "dl-63"
+  },
+  {
+   "t": "burst",
+   "ops": [
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/capture",
+     "auth": {
+      "user": "u_ada",
+      "ord": 2
+     },
+     "body": "{\"amount\":1,\"final\":false}",
+     "query": "",
+     "ref": "ma35",
+     "refns": "a",
+     "key": "dl-63-65"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/capture",
+     "auth": {
+      "user": "u_ada",
+      "ord": 2
+     },
+     "body": "{\"amount\":1,\"final\":false}",
+     "query": "",
+     "ref": "ma35",
+     "refns": "a",
+     "key": "dl-63-66"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/capture",
+     "auth": {
+      "user": "u_ada",
+      "ord": 2
+     },
+     "body": "{}",
+     "query": "",
+     "ref": "ma35",
+     "refns": "a",
+     "key": "dl-63-67"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/void",
+     "auth": {
+      "user": "u_dee",
+      "ord": 7
+     },
+     "body": null,
+     "query": "",
+     "ref": "ma35",
+     "refns": "a"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/capture",
+     "auth": {
+      "user": "u_ada",
+      "ord": 4
+     },
+     "body": "{\"amount\":1,\"final\":false}",
+     "query": "",
+     "ref": "ma35",
+     "refns": "a",
+     "key": "dl-63-69"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/payments",
+     "auth": {
+      "user": "u_dee",
+      "ord": 3
+     },
+     "body": "{\"to_handle\": \"ada\", \"amount\": 1}",
+     "query": "",
+     "key": "dl-63-70"
+    }
+   ],
+   "deadline": {
+    "aid": "ma35",
+    "offsets": [
+     -0.01,
+     0.015,
+     0,
+     -0.08,
+     0.006,
+     0.04
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/me",
+   "auth": {
+    "user": "u_ada",
+    "ord": 6
+   },
+   "body": null,
+   "query": "known_at=@known_at@",
+   "inst": {
+    "known_at": [
+     "ev",
+     [
+      "a",
+      "ma35",
+      "v"
+     ],
+     0,
+     -180
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/me",
+   "auth": {
+    "user": "u_dee",
+    "ord": 3
+   },
+   "body": null,
+   "query": ""
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/settlements",
+   "auth": {
+    "user": "u_ada",
+    "ord": 6
+   },
+   "body": "{\"transfers\": [{\"from_handle\": \"ada\", \"to_handle\": \"dee\", \"amount\": 1000, \"note\": \"sb-71\"}, {\"from_handle\": \"ada\", \"to_handle\": \"bob\", \"amount\": 1000, \"note\": \"sb-71\"}]}",
+   "query": "",
+   "key": "sb-71"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 1
+   },
+   "body": "{\"corrections\":[{\"amount\":0,\"effective_at\":\"@s@\",\"reason\":\"batch fix\",\"expected_revision\":1,\"payment_id\":\"@P:mp38@\"}]}",
+   "query": "",
+   "inst": {
+    "s": [
+     "ev",
+     [
+      "p",
+      "mp38"
+     ],
+     -1000000,
+     0
+    ],
+    "s2": [
+     "ev",
+     [
+      "p",
+      "mp38"
+     ],
+     -1000000,
+     330
+    ],
+    "x": [
+     "now",
+     -60,
+     0
+    ]
+   },
+   "key": "sb-71-incomplete"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 3
+   },
+   "body": "{\"corrections\":[{\"reason\":\"batch fix\",\"payment_id\":\"@P:mp38@\",\"expected_revision\":1,\"effective_at\":\"@s@\",\"amount\":1},{\"effective_at\":\"@x@\",\"amount\":0,\"expected_revision\":1,\"payment_id\":\"@P:mp39@\",\"reason\":\"batch fix\"}]}",
+   "query": "",
+   "inst": {
+    "s": [
+     "ev",
+     [
+      "p",
+      "mp38"
+     ],
+     -1,
+     0
+    ],
+    "s2": [
+     "ev",
+     [
+      "p",
+      "mp38"
+     ],
+     -1,
+     330
+    ],
+    "x": [
+     "now",
+     -60,
+     0
+    ]
+   },
+   "key": "sb-71-unequal"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_ada",
+    "ord": 6
+   },
+   "body": "{\"effective_at\":\"@eff@\",\"expected_revision\":1,\"reason\":null,\"amount\":617}",
+   "query": "",
+   "ref": "mp38",
+   "key": "k72",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "ev",
+     [
+      "a",
+      "ma20",
+      "v"
+     ],
+     0,
+     -180
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 4
+   },
+   "body": "{\"corrections\":[{\"expected_revision\":1,\"effective_at\":\"@s@\",\"payment_id\":\"@P:mp38@\",\"amount\":0,\"reason\":\"batch fix\"},{\"expected_revision\":1,\"effective_at\":\"@s2@\",\"amount\":1,\"reason\":\"batch fix\",\"payment_id\":\"@P:mp39@\"}]}",
+   "query": "",
+   "inst": {
+    "s": [
+     "ev",
+     [
+      "p",
+      "mp38"
+     ],
+     -3600000000,
+     0
+    ],
+    "s2": [
+     "ev",
+     [
+      "p",
+      "mp38"
+     ],
+     -3600000000,
+     -180
+    ],
+    "x": [
+     "now",
+     -60,
+     0
+    ]
+   },
+   "key": "sb-71-ok"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/refunds",
+   "auth": {
+    "user": "u_bob",
+    "ord": 4
+   },
+   "body": "{\"amount\":2}",
+   "query": "",
+   "ref": "mp39",
+   "key": "k73",
+   "refns": "p"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 4
+   },
+   "body": "{\"corrections\":[{\"expected_revision\":1,\"effective_at\":\"@s@\",\"payment_id\":\"@P:mp38@\",\"amount\":0,\"reason\":\"batch fix\"},{\"expected_revision\":1,\"effective_at\":\"@s2@\",\"amount\":1,\"reason\":\"batch fix\",\"payment_id\":\"@P:mp39@\"}]}",
+   "query": "",
+   "inst": {
+    "s": [
+     "ev",
+     [
+      "p",
+      "mp38"
+     ],
+     -3600000000,
+     0
+    ],
+    "s2": [
+     "ev",
+     [
+      "p",
+      "mp38"
+     ],
+     -3600000000,
+     -180
+    ],
+    "x": [
+     "now",
+     -60,
+     0
+    ]
+   },
+   "key": "sb-71-ok"
+  },
+  {
+   "t": "travel",
+   "views": [
+    [
+     [
+      "ev",
+      [
+       "r",
+       "mp10",
+       2
+      ],
+      1,
+      60
+     ],
+     [
+      "ev",
+      [
+       "a",
+       "ma16",
+       "x"
+      ],
+      0,
+      60
+     ]
+    ],
+    [
+     [
+      "ev",
+      [
+       "a",
+       "ma34",
+       "v"
+      ],
+      0,
+      60
+     ],
+     [
+      "now",
+      -3600,
+      0
+     ]
+    ],
+    [
+     [
+      "ev",
+      [
+       "a",
+       "ma5",
+       "x"
+      ],
+      -1,
+      0
+     ],
+     null
+    ]
+   ]
+  },
+  {
+   "t": "sleep",
+   "s": 2.72
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_dee",
+    "ord": 2
+   },
+   "body": null,
+   "query": "snapshot=@SNAP@&offset=x",
+   "inst": {},
+   "snap": "msnap34"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/splits",
+   "auth": {
+    "user": "u_ada",
+    "ord": 4
+   },
+   "body": "{\"participant_handles\":[\"new_user58_tag\", \"dee\", \"bob\"],\"amount\":1,\"note\":\"\"}",
+   "query": "",
+   "key": "k74"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/splits",
+   "auth": {
+    "user": "u_cy",
+    "ord": 4
+   },
+   "body": "{\"note\":\"\",\"participant_handles\":[\"ada\", \"dee\", \"cy\", \"bob\"],\"amount\":999}",
+   "query": "",
+   "key": "k75"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/payments/{ref}/revisions",
+   "auth": {
+    "user": "u_bob",
+    "ord": 3
+   },
+   "body": null,
+   "query": "",
+   "ref": "mp7",
+   "refns": "p"
+  },
+  {
+   "t": "burst",
+   "ops": [
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations",
+     "auth": {
+      "user": "mu31",
+      "ord": 4
+     },
+     "body": "{\"to_handle\":\"dee\",\"amount\":1}",
+     "query": "",
+     "key": "k76"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations",
+     "auth": {
+      "user": "mu31",
+      "ord": 4
+     },
+     "body": "{\"to_handle\":\"dee\",\"amount\":1}",
+     "query": "",
+     "key": "k76"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations",
+     "auth": {
+      "user": "mu31",
+      "ord": 3
+     },
+     "body": "{\"to_handle\":\"dee\",\"amount\":1}",
+     "query": "",
+     "key": "k76"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations",
+     "auth": {
+      "user": "mu31",
+      "ord": 2
+     },
+     "body": "{\"to_handle\":\"dee\",\"amount\":1}",
+     "query": "",
+     "key": "k76"
+    }
+   ]
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests/{ref}/decline",
+   "auth": {
+    "user": "u_bob",
+    "ord": 7
+   },
+   "body": null,
+   "query": "",
+   "ref": "rq_s1"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations/{ref}/capture",
+   "auth": {
+    "user": "u_dee",
+    "ord": 5
+   },
+   "body": "{\"final\":\"no\"}",
+   "query": "",
+   "ref": "ma18",
+   "key": "k77",
+   "refns": "a"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations/{ref}/capture",
+   "auth": {
+    "user": "u_dee",
+    "ord": 4
+   },
+   "body": "{}",
+   "query": "",
+   "ref": "ma34",
+   "key": "k78",
+   "refns": "a"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations/{ref}/void",
+   "auth": {
+    "user": "u_bob",
+    "ord": 7
+   },
+   "body": null,
+   "query": "",
+   "ref": "ma16",
+   "refns": "a"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations/{ref}/capture",
+   "auth": {
+    "user": "u_bob",
+    "ord": 1
+   },
+   "body": "{\"amount\":1}",
+   "query": "",
+   "ref": "ma8",
+   "key": "k79",
+   "refns": "a"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments",
+   "auth": {
+    "user": "u_cy",
+    "ord": 1
+   },
+   "body": "{\"to_handle\":\"new_user58_tag\",\"note\":\"  spaced  \",\"amount\":700}",
+   "query": "",
+   "key": "k80"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 2
+   },
+   "body": "{\"corrections\":[{\"reason\":\"batch fix\",\"expected_revision\":2,\"payment_id\":\"@P:mp24@\",\"amount\":0,\"effective_at\":\"@s2@\"},{\"expected_revision\":2,\"amount\":0,\"payment_id\":\"@P:mp25@\",\"reason\":\"batch fix\",\"effective_at\":\"@s@\"},{\"reason\":\"batch fix\",\"expected_revision\":1,\"amount\":0,\"payment_id\":\"@P:mp36@\",\"effective_at\":\"@e0@\"}]}",
+   "query": "",
+   "key": "k81",
+   "inst": {
+    "s": [
+     "ev",
+     [
+      "r",
+      "mp24",
+      2
+     ],
+     -1000000,
+     0
+    ],
+    "s2": [
+     "ev",
+     [
+      "r",
+      "mp24",
+      2
+     ],
+     -1000000,
+     330
+    ],
+    "e0": [
+     "now",
+     -3,
+     60
+    ]
+   }
+  },
+  {
+   "t": "sleep",
+   "s": 2.27
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/refunds",
+   "auth": {
+    "user": "u_dee",
+    "ord": 3
+   },
+   "body": "{\"amount\":1}",
+   "query": "",
+   "ref": "mp28",
+   "key": "k82",
+   "refns": "p"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/refunds",
+   "auth": {
+    "user": "u_dee",
+    "ord": 5
+   },
+   "body": "{\"amount\":1}",
+   "query": "",
+   "ref": "mp30",
+   "key": "k83",
+   "refns": "p"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/splits",
+   "auth": {
+    "user": "u_dee",
+    "ord": 2
+   },
+   "body": "{\"participant_handles\":[\"ada\", \"new_user58_tag\", \"cy\"],\"amount\":3000}",
+   "query": "",
+   "key": "k84"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests/{ref}/pay",
+   "auth": {
+    "user": "u_bob",
+    "ord": 1
+   },
+   "body": "{}",
+   "query": "",
+   "ref": "mrq51",
+   "key": "k85"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/settlements",
+   "auth": {
+    "user": "u_ada",
+    "ord": 1
+   },
+   "body": "{\"transfers\":[{\"to_handle\":\"ada\",\"from_handle\":\"bob\",\"amount\":1032},{\"to_handle\":\"bob\",\"amount\":3043,\"from_handle\":\"dee\"},{\"to_handle\":\"cy\",\"amount\":1472,\"from_handle\":\"dee\",\"note\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}]}",
+   "query": "",
+   "key": "k86"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/activity",
+   "auth": {
+    "user": "mu31",
+    "ord": 6
+   },
+   "body": null,
+   "query": ""
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments",
+   "auth": {
+    "user": "u_ada",
+    "ord": 4
+   },
+   "body": "{\"amount\":1639,\"visibility\":\"PUBLIC\",\"note\":null,\"to_handle\":\"new_user58_tag\"}",
+   "query": "",
+   "key": "k87"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/refunds",
+   "auth": {
+    "user": "u_dee",
+    "ord": 5
+   },
+   "body": "{\"amount\":1}",
+   "query": "",
+   "ref": "mp38",
+   "key": "k88",
+   "refns": "p"
+  },
+  {
+   "t": "export"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_ada",
+    "ord": 3
+   },
+   "body": null,
+   "query": "limit=200"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_ada",
+    "ord": 0
+   },
+   "body": "{\"expected_revision\": 3, \"amount\": 119, \"reason\": \"snapshot stability\", \"effective_at\": \"@eff@\"}",
+   "query": "",
+   "ref": "p_s0",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "ev",
+     [
+      "r",
+      "p_s0",
+      3
+     ],
+     0,
+     0
+    ]
+   },
+   "key": "ss-88"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments",
+   "auth": {
+    "user": "u_ada",
+    "ord": 4
+   },
+   "body": "{\"note\":\"\",\"amount\":3014,\"to_handle\":\"dee\",\"visibility\":null}",
+   "query": "",
+   "key": "000090xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations/{ref}/capture",
+   "auth": {
+    "user": "u_cy",
+    "ord": 0
+   },
+   "body": "{\"amount\":1}",
+   "query": "",
+   "ref": "ma17",
+   "key": "000091xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "refns": "a"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations/{ref}/void",
+   "auth": {
+    "user": "u_ada",
+    "ord": 2
+   },
+   "body": null,
+   "query": "",
+   "ref": "ma5",
+   "refns": "a"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_cy",
+    "ord": 4
+   },
+   "body": "{\"expected_revision\": 2, \"amount\": 921, \"reason\": \"snapshot stability\", \"effective_at\": \"@eff@\"}",
+   "query": "",
+   "ref": "mp10",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "ev",
+     [
+      "r",
+      "mp10",
+      2
+     ],
+     0,
+     0
+    ]
+   },
+   "key": "ss-91"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_ada",
+    "ord": 2
+   },
+   "body": null,
+   "query": "snapshot=@SNAP@&limit=1&offset=0",
+   "snap": "msnap36"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_ada",
+    "ord": 4
+   },
+   "body": null,
+   "query": "snapshot=@SNAP@&limit=1&offset=1",
+   "snap": "msnap36"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_ada",
+    "ord": 6
+   },
+   "body": null,
+   "query": "snapshot=@SNAP@&limit=1&offset=2",
+   "snap": "msnap36"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_ada",
+    "ord": 5
+   },
+   "body": null,
+   "query": "snapshot=@SNAP@&limit=1&offset=3",
+   "snap": "msnap36"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_ada",
+    "ord": 1
+   },
+   "body": null,
+   "query": "snapshot=@SNAP@&limit=1&offset=4",
+   "snap": "msnap36"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_ada",
+    "ord": 2
+   },
+   "body": null,
+   "query": "snapshot=@SNAP@&limit=1&offset=5",
+   "snap": "msnap36"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_ada",
+    "ord": 3
+   },
+   "body": null,
+   "query": "snapshot=@SNAP@&limit=200&offset=0",
+   "snap": "msnap36"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_ada",
+    "ord": 3
+   },
+   "body": null,
+   "query": "snapshot=@SNAP@&limit=2&offset=1",
+   "snap": "msnap36"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_cy",
+    "ord": 2
+   },
+   "body": "{\"corrections\":[{\"effective_at\":\"@e0@\",\"reason\":\"batch fix\",\"amount\":417,\"payment_id\":\"@P:mp48@\",\"expected_revision\":1},{\"payment_id\":\"@P:p_s1@\",\"reason\":\"batch fix\",\"expected_revision\":1,\"effective_at\":\"@e2@\",\"amount\":63},{\"amount\":104,\"expected_revision\":4,\"payment_id\":\"@P:p_s0@\",\"effective_at\":\"@e3@\",\"reason\":\"batch fix\"}]}",
+   "query": "",
+   "key": "k93",
+   "inst": {
+    "e0": [
+     "ev",
+     [
+      "a",
+      "ma8",
+      "v"
+     ],
+     0,
+     -180
+    ],
+    "e2": [
+     "ev",
+     [
+      "a",
+      "ma5",
+      "c"
+     ],
+     -1,
+     60
+    ],
+    "e3": [
+     "ev",
+     [
+      "p",
+      "mp24"
+     ],
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_ada",
+    "ord": 7
+   },
+   "body": "{\n \"amount\": 1794,\n \"to_handle\": \"bob\",\n \"visibility\": \"private\"\n}",
+   "query": "",
+   "key": "k17"
+  },
+  {
+   "t": "burst",
+   "ops": [
+    {
+     "t": "call",
+     "method": "GET",
+     "path": "/statement",
+     "auth": {
+      "user": "u_ada",
+      "ord": 3
+     },
+     "body": null,
+     "query": "snapshot=@SNAP@&offset=5",
+     "inst": {},
+     "snap": "msnap31"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/payments/{ref}/corrections",
+     "auth": {
+      "user": "u_cy",
+      "ord": 7
+     },
+     "body": "{\"reason\":\"fix\",\"expected_revision\":3,\"amount\":909}",
+     "query": "",
+     "ref": "mp10",
+     "key": "k94",
+     "refns": "p",
+     "inst": {
+      "eff": [
+       "ev",
+       [
+        "rr",
+        "mp10",
+        2
+       ],
+       -1,
+       -180
+      ]
+     }
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/payments",
+     "auth": {
+      "user": "u_ada",
+      "ord": 4
+     },
+     "body": "{\"to_handle\":\"BOB\",\"visibility\":\"PUBLIC\",\"note\":\"  spaced  \",\"amount\":2515}",
+     "query": "",
+     "key": "k95"
+    }
+   ]
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/refunds",
+   "auth": {
+    "user": "u_dee",
+    "ord": 2
+   },
+   "body": "{\"amount\":-1}",
+   "query": "",
+   "ref": "mp29",
+   "key": "",
+   "refns": "p"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_dee",
+    "ord": 2
+   },
+   "body": "{\"to_handle\": \"cy\", \"amount\": 5, \"note\": \"dl-96\"}",
+   "query": "",
+   "key": "dl-96"
+  },
+  {
+   "t": "burst",
+   "ops": [
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/capture",
+     "auth": {
+      "user": "u_cy",
+      "ord": 5
+     },
+     "body": "{\"amount\":1,\"final\":false}",
+     "query": "",
+     "ref": "ma55",
+     "refns": "a",
+     "key": "dl-96-98"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/capture",
+     "auth": {
+      "user": "u_cy",
+      "ord": 4
+     },
+     "body": "{}",
+     "query": "",
+     "ref": "ma55",
+     "refns": "a",
+     "key": "dl-96-99"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/void",
+     "auth": {
+      "user": "u_dee",
+      "ord": 1
+     },
+     "body": null,
+     "query": "",
+     "ref": "ma55",
+     "refns": "a"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/capture",
+     "auth": {
+      "user": "u_cy",
+      "ord": 7
+     },
+     "body": "{\"amount\":1,\"final\":false}",
+     "query": "",
+     "ref": "ma55",
+     "refns": "a",
+     "key": "dl-96-101"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/payments",
+     "auth": {
+      "user": "u_dee",
+      "ord": 0
+     },
+     "body": "{\"to_handle\": \"cy\", \"amount\": 1}",
+     "query": "",
+     "key": "dl-96-102"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/capture",
+     "auth": {
+      "user": "u_cy",
+      "ord": 1
+     },
+     "body": "{\"amount\":1,\"final\":false}",
+     "query": "",
+     "ref": "ma55",
+     "refns": "a",
+     "key": "dl-96-103"
+    }
+   ],
+   "deadline": {
+    "aid": "ma55",
+    "offsets": [
+     -0.004,
+     0.002,
+     -0.01,
+     0.04,
+     -0.02,
+     0.015
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/splits",
+   "auth": {
+    "user": "u_dee",
+    "ord": 4
+   },
+   "body": "{\"unknown_field\":{\"x\":[1,2]},\"note\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"amount\":999,\"participant_handles\":[\"new_user58_tag\", \"bob\", \"ada\"]}",
+   "query": "",
+   "key": null
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests/{ref}/cancel",
+   "auth": {
+    "user": "mu31",
+    "ord": 7
+   },
+   "body": null,
+   "query": "",
+   "ref": "mrq40"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_cy",
+    "ord": 5
+   },
+   "body": "{\"reason\":\"fix\",\"amount\":1000000001,\"expected_revision\":1,\"effective_at\":\"@eff@\"}",
+   "query": "",
+   "ref": "mp48",
+   "key": "k105",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "ev",
+     [
+      "r",
+      "mp24",
+      3
+     ],
+     -1,
+     0
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 6
+   },
+   "body": "{\"corrections\":[{\"amount\":119,\"expected_revision\":4,\"payment_id\":\"@P:p_s0@\",\"effective_at\":\"@e0@\",\"reason\":\"batch fix\"},{\"effective_at\":\"@e1@\",\"amount\":0,\"expected_revision\":1,\"payment_id\":\"@P:mp56@\",\"reason\":\"batch fix\"},{\"expected_revision\":1,\"reason\":\"batch fix\",\"effective_at\":\"@e2@\",\"payment_id\":\"@P:mp33@\",\"amount\":3}]}",
+   "query": "",
+   "key": "k106",
+   "inst": {
+    "e0": [
+     "ev",
+     [
+      "p",
+      "mp38"
+     ],
+     -1000,
+     -180
+    ],
+    "e1": [
+     "ev",
+     [
+      "p",
+      "mp30"
+     ],
+     0,
+     60
+    ],
+    "e2": [
+     "ev",
+     [
+      "p",
+      "mp39"
+     ],
+     -1000,
+     60
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/settlements",
+   "auth": {
+    "user": "u_ada",
+    "ord": 6
+   },
+   "body": "{\"transfers\":[{\"amount\":332,\"from_handle\":\"new_user58_tag\",\"to_handle\":\"bob\",\"visibility\":\"PUBLIC\"},{\"amount\":1533,\"to_handle\":\"cy\",\"from_handle\":\"ada\"},{\"from_handle\":\"ada\",\"to_handle\":\"bob\",\"amount\":4902},{\"to_handle\":\"bob\",\"amount\":308,\"visibility\":\"private\",\"from_handle\":\"new_user58_tag\"},{\"to_handle\":\"ada\",\"note\":null,\"amount\":472,\"from_handle\":\"nobody_here\"},{\"to_handle\":\"dee\",\"from_handle\":\"new_user58_tag\",\"amount\":1,\"unknown_field\":{\"x\":[1,2]}}]}",
+   "query": "",
+   "key": "k107"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/payments/{ref}/revisions",
+   "auth": {
+    "user": "u_ada",
+    "ord": 2
+   },
+   "body": null,
+   "query": "",
+   "ref": "mp36",
+   "refns": "p"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 1
+   },
+   "body": "{\"corrections\":[{\"payment_id\":\"@P:mp39@\",\"amount\":0,\"reason\":\"batch fix\",\"expected_revision\":3,\"effective_at\":\"@s2@\"}]}",
+   "query": "",
+   "key": "k108",
+   "inst": {
+    "s": [
+     "ev",
+     [
+      "r",
+      "mp38",
+      2
+     ],
+     0,
+     0
+    ],
+    "s2": [
+     "ev",
+     [
+      "r",
+      "mp38",
+      2
+     ],
+     0,
+     330
+    ]
+   }
+  },
+  {
+   "t": "import",
+   "variant": "not_json"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_bob",
+    "ord": 3
+   },
+   "body": "{\"expected_revision\":1,\"amount\":202,\"reason\":\"fix\",\"effective_at\":\"@eff@\"}",
+   "query": "",
+   "ref": "p_s1",
+   "key": "k109",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "ev",
+     [
+      "rr",
+      "mp25",
+      2
+     ],
+     -1000,
+     -180
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments",
+   "auth": {
+    "user": "u_dee",
+    "ord": 2
+   },
+   "body": "{\"amount\":0,\"visibility\":\"private\",\"to_handle\":\"cy\",\"unknown_field\":{\"x\":[1,2]},\"note\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+   "query": "",
+   "key": null
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/me",
+   "auth": {
+    "user": "mu31",
+    "ord": 4
+   },
+   "body": null,
+   "query": "as_of=@as_of@&known_at=@known_at@",
+   "inst": {
+    "as_of": [
+     "ev",
+     [
+      "rr",
+      "mp25",
+      3
+     ],
+     -1000,
+     330
+    ],
+    "known_at": [
+     "abs",
+     "2100-01-01T00:00:00Z"
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_dee",
+    "ord": 4
+   },
+   "body": "{\"reason\":\"fix\",\"expected_revision\":\"1\",\"amount\":0,\"effective_at\":\"@eff@\"}",
+   "query": "",
+   "ref": "mp36",
+   "key": "k111",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "now",
+     -30,
+     330
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 7
+   },
+   "body": "{\"corrections\":[{\"payment_id\":\"@P:mp25@\",\"reason\":\"batch fix\",\"effective_at\":\"@e0@\",\"amount\":0,\"expected_revision\":3},{\"expected_revision\":1,\"reason\":\"batch fix\",\"effective_at\":\"@e1@\",\"amount\":0,\"payment_id\":\"@P:mp56@\"}]}",
+   "query": "",
+   "key": "k112",
+   "inst": {
+    "e0": [
+     "now",
+     -30,
+     0
+    ],
+    "e1": [
+     "ev",
+     [
+      "rr",
+      "p_s1",
+      2
+     ],
+     -1,
+     0
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/refunds",
+   "auth": {
+    "user": "u_bob",
+    "ord": 0
+   },
+   "body": "{\"amount\": 34}",
+   "query": "",
+   "ref": "p_s0",
+   "refns": "p",
+   "key": "rr-113"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_ada",
+    "ord": 5
+   },
+   "body": "{\"expected_revision\": 4, \"amount\": 83, \"reason\": \"below refunds\", \"effective_at\": \"@eff@\"}",
+   "query": "",
+   "ref": "p_s0",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "ev",
+     [
+      "r",
+      "p_s0",
+      4
+     ],
+     0,
+     0
+    ]
+   },
+   "key": "rr-114"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/refunds",
+   "auth": {
+    "user": "u_bob",
+    "ord": 5
+   },
+   "body": "{\"amount\": 36}",
+   "query": "",
+   "ref": "p_s0",
+   "refns": "p",
+   "key": "rr-115"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_bob",
+    "ord": 7
+   },
+   "body": "{\"to_handle\": \"ada\", \"amount\": 2338, \"note\": \"rr-hold-p_s0\"}",
+   "query": "",
+   "key": "rr-116"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/refunds",
+   "auth": {
+    "user": "u_bob",
+    "ord": 7
+   },
+   "body": "{\"amount\": 1}",
+   "query": "",
+   "ref": "p_s0",
+   "refns": "p",
+   "key": "rr-117"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/refunds",
+   "auth": {
+    "user": "u_ada",
+    "ord": 6
+   },
+   "body": "{\"amount\":1}",
+   "query": "",
+   "ref": "mp15",
+   "refns": "p",
+   "key": "rr-118"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations/{ref}/void",
+   "auth": {
+    "user": "u_bob",
+    "ord": 2
+   },
+   "body": null,
+   "query": "",
+   "ref": "ma58",
+   "refns": "a"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "mu31",
+    "ord": 6
+   },
+   "body": "{\"to_handle\": \"ada\", \"amount\": 5, \"note\": \"dl-118\"}",
+   "query": "",
+   "key": "dl-118"
+  },
+  {
+   "t": "burst",
+   "ops": [
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/payments",
+     "auth": {
+      "user": "mu31",
+      "ord": 4
+     },
+     "body": "{\"to_handle\": \"ada\", \"amount\": 1}",
+     "query": "",
+     "key": "dl-118-120"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/capture",
+     "auth": {
+      "user": "u_ada",
+      "ord": 1
+     },
+     "body": "{\"amount\":1,\"final\":false}",
+     "query": "",
+     "ref": "ma59",
+     "refns": "a",
+     "key": "dl-118-121"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/capture",
+     "auth": {
+      "user": "u_ada",
+      "ord": 1
+     },
+     "body": "{}",
+     "query": "",
+     "ref": "ma59",
+     "refns": "a",
+     "key": "dl-118-122"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/capture",
+     "auth": {
+      "user": "u_ada",
+      "ord": 2
+     },
+     "body": "{\"amount\":1,\"final\":false}",
+     "query": "",
+     "ref": "ma59",
+     "refns": "a",
+     "key": "dl-118-123"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/void",
+     "auth": {
+      "user": "mu31",
+      "ord": 1
+     },
+     "body": null,
+     "query": "",
+     "ref": "ma59",
+     "refns": "a"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/capture",
+     "auth": {
+      "user": "u_ada",
+      "ord": 7
+     },
+     "body": "{\"amount\":1,\"final\":false}",
+     "query": "",
+     "ref": "ma59",
+     "refns": "a",
+     "key": "dl-118-125"
+    }
+   ],
+   "deadline": {
+    "aid": "ma59",
+    "offsets": [
+     -0.08,
+     0.04,
+     -0.004,
+     0.015,
+     -0.04,
+     0
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/me",
+   "auth": {
+    "user": "u_cy",
+    "ord": 4
+   },
+   "body": null,
+   "query": "as_of=@as_of@",
+   "inst": {
+    "as_of": [
+     "ev",
+     [
+      "a",
+      "ma5",
+      "c"
+     ],
+     1,
+     0
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests/{ref}/decline",
+   "auth": {
+    "user": "mu31",
+    "ord": 0
+   },
+   "body": null,
+   "query": "",
+   "ref": "mrq52"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/splits",
+   "auth": {
+    "user": "u_ada",
+    "ord": 2
+   },
+   "body": "{\"amount\":5,\"note\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"unknown_field\":{\"x\":[1,2]},\"participant_handles\":\"ada\"}",
+   "query": "",
+   "key": "k126"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_ada",
+    "ord": 7
+   },
+   "body": "{\"expected_revision\":1,\"amount\":2,\"effective_at\":\"@eff@\",\"reason\":\"fix\"}",
+   "query": "",
+   "ref": "mp29",
+   "key": "k127",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "ev",
+     [
+      "p",
+      "mp57"
+     ],
+     -3600000000,
+     -180
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_ada",
+    "ord": 3
+   },
+   "body": "{\"amount\":1177,\"expected_revision\":3,\"reason\":\"fix\",\"effective_at\":\"@eff@\"}",
+   "query": "",
+   "ref": "mp10",
+   "key": "k128",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "ev",
+     [
+      "rr",
+      "mp24",
+      3
+     ],
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations/{ref}/capture",
+   "auth": {
+    "user": "u_dee",
+    "ord": 7
+   },
+   "body": "{\"amount\":1.0}",
+   "query": "",
+   "ref": "ma34",
+   "key": "k129",
+   "refns": "a"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/activity",
+   "auth": {
+    "raw": ""
+   },
+   "body": null,
+   "query": ""
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_cy",
+    "ord": 2
+   },
+   "body": null,
+   "query": "snapshot=@SNAP@&unknown=1",
+   "inst": {},
+   "snap": "msnap32"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_bob",
+    "ord": 5
+   },
+   "body": "{\"expected_revision\":1,\"reason\":\"fix\",\"effective_at\":\"@eff@\",\"amount\":4}",
+   "query": "",
+   "ref": "mp33",
+   "key": "k131",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "ev",
+     [
+      "p",
+      "mp39"
+     ],
+     -1000000,
+     0
+    ]
+   }
+  },
+  {
+   "t": "burst",
+   "ops": [
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/requests/{ref}/cancel",
+     "auth": {
+      "user": "u_bob",
+      "ord": 4
+     },
+     "body": null,
+     "query": "",
+     "ref": "rq_s0"
+    },
+    {
+     "t": "call",
+     "method": "GET",
+     "path": "/requests",
+     "auth": {
+      "user": "mu31",
+      "ord": 0
+     },
+     "body": null,
+     "query": "direction=incoming&status=pending"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/requests/{ref}/decline",
+     "auth": {
+      "user": "u_dee",
+      "ord": 4
+     },
+     "body": null,
+     "query": "",
+     "ref": "mrq41"
+    },
+    {
+     "t": "call",
+     "method": "GET",
+     "path": "/requests",
+     "auth": {
+      "user": "mu31",
+      "ord": 1
+     },
+     "body": null,
+     "query": "limit=4.0"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/requests/{ref}/pay",
+     "auth": {
+      "user": "u_bob",
+      "ord": 1
+     },
+     "body": "{\"visibility\":\"private\"}",
+     "query": "",
+     "ref": "mrq42",
+     "key": "k132"
+    }
+   ]
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_ada",
+    "ord": 6
+   },
+   "body": "{\"amount\":4380,\"to_handle\":\"bob\",\"visibility\":\"private\",\"note\":\"  spaced  \"}",
+   "query": "",
+   "key": "k133"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/me",
+   "auth": {
+    "user": "u_ada",
+    "ord": 5
+   },
+   "body": null,
+   "query": "as_of=@as_of@&known_at=@known_at@",
+   "inst": {
+    "as_of": [
+     "ev",
+     [
+      "r",
+      "mp36",
+      2
+     ],
+     0,
+     -180
+    ],
+    "known_at": [
+     "now",
+     -30,
+     0
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations/{ref}/capture",
+   "auth": {
+    "user": "u_bob",
+    "ord": 6
+   },
+   "body": "{\"amount\":1155}",
+   "query": "",
+   "ref": "ma62",
+   "key": "k134",
+   "refns": "a"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/activity",
+   "auth": {
+    "user": "u_cy",
+    "ord": 0
+   },
+   "body": null,
+   "query": ""
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests/{ref}/pay",
+   "auth": {
+    "user": "u_bob",
+    "ord": 5
+   },
+   "body": "{\"visibility\":\"private\"}",
+   "query": "",
+   "ref": "mrq14",
+   "key": "k135"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_dee",
+    "ord": 0
+   },
+   "body": "{\"to_handle\":\"cy\",\"amount\":523}",
+   "query": "",
+   "key": "k136"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests",
+   "auth": {
+    "user": "u_bob",
+    "ord": 5
+   },
+   "body": "{\"payer_handle\":\"dee\"}",
+   "query": "",
+   "key": "k26"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests",
+   "auth": {
+    "user": "u_cy",
+    "ord": 1
+   },
+   "body": "{\"note\":\"  spaced  \",\"payer_handle\":\"bob\",\"amount\":100.0}",
+   "query": "",
+   "key": "000137xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/settlements",
+   "auth": {
+    "user": "u_ada",
+    "ord": 6
+   },
+   "body": "{\"transfers\":[{\"from_handle\":\"dee\",\"visibility\":\"PUBLIC\",\"to_handle\":\"cy\",\"amount\":653,\"note\":null},{\"amount\":4125,\"to_handle\":\"bob\",\"from_handle\":\"ada\"},{\"amount\":791,\"to_handle\":\"ada\",\"from_handle\":\"bob\"},{\"to_handle\":\"cy\",\"from_handle\":\"nobody_here\",\"amount\":3029},{\"from_handle\":\"cy\",\"amount\":352,\"to_handle\":\"dee\",\"visibility\":\"private\"},{\"to_handle\":\"dee\",\"from_handle\":\"bob\",\"amount\":3966,\"note\":\"  spaced  \"}]}",
+   "query": "",
+   "key": "k138"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests/{ref}/cancel",
+   "auth": {
+    "user": "mu31",
+    "ord": 2
+   },
+   "body": null,
+   "query": "",
+   "ref": "mrq40"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 7
+   },
+   "body": "{\"corrections\":[{\"payment_id\":\"@P:mp38@\",\"reason\":\"batch fix\",\"amount\":0,\"effective_at\":\"@s2@\",\"expected_revision\":2},{\"reason\":\"batch fix\",\"payment_id\":\"@P:mp39@\",\"amount\":0,\"expected_revision\":2,\"effective_at\":\"@s2@\"}]}",
+   "query": "",
+   "key": "k139",
+   "inst": {
+    "s": [
+     "ev",
+     [
+      "r",
+      "mp38",
+      2
+     ],
+     -3600000000,
+     0
+    ],
+    "s2": [
+     "ev",
+     [
+      "r",
+      "mp38",
+      2
+     ],
+     -3600000000,
+     330
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/me",
+   "auth": {
+    "user": "u_ada",
+    "ord": 2
+   },
+   "body": null,
+   "query": "as_of=@as_of@",
+   "inst": {
+    "as_of": [
+     "ev",
+     [
+      "a",
+      "ma55",
+      "c"
+     ],
+     1000000,
+     60
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/activity",
+   "auth": {
+    "user": "u_dee",
+    "ord": 5
+   },
+   "body": null,
+   "query": ""
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations/{ref}/capture",
+   "auth": {
+    "user": "u_cy",
+    "ord": 7
+   },
+   "body": "{\"final\":true}",
+   "query": "",
+   "ref": "ma64",
+   "key": "k140",
+   "refns": "a"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/refunds",
+   "auth": {
+    "user": "u_dee",
+    "ord": 1
+   },
+   "body": "{\"amount\":-1}",
+   "query": "",
+   "ref": "mp28",
+   "key": "k141",
+   "refns": "p"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/activity",
+   "auth": {
+    "user": "u_bob",
+    "ord": 3
+   },
+   "body": null,
+   "query": "limit=99999999999999999999"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/refunds",
+   "auth": {
+    "user": "u_ada",
+    "ord": 0
+   },
+   "body": "{\"amount\":1}",
+   "query": "",
+   "ref": "mp28",
+   "key": "k142",
+   "refns": "p"
+  },
+  {
+   "t": "sleep",
+   "s": 2.6
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 7
+   },
+   "body": "{\"corrections\":[{\"payment_id\":\"@P:mp38@\",\"amount\":0,\"effective_at\":\"@s@\",\"reason\":\"batch fix\",\"expected_revision\":2},{\"payment_id\":\"@P:mp39@\",\"reason\":\"batch fix\",\"amount\":1,\"effective_at\":\"@s@\",\"expected_revision\":2},{\"effective_at\":\"@e0@\",\"reason\":\"batch fix\",\"expected_revision\":2,\"payment_id\":\"@P:p_s1@\",\"amount\":0}]}",
+   "query": "",
+   "key": "k143",
+   "inst": {
+    "s": [
+     "ev",
+     [
+      "r",
+      "mp39",
+      2
+     ],
+     -3600000000,
+     0
+    ],
+    "s2": [
+     "ev",
+     [
+      "r",
+      "mp39",
+      2
+     ],
+     -3600000000,
+     330
+    ],
+    "e0": [
+     "raw",
+     "2026-09-24T13:20:00"
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/settlements",
+   "auth": {
+    "user": "u_ada",
+    "ord": 5
+   },
+   "body": "{\"transfers\":[{\"amount\":8,\"to_handle\":\"ada\",\"from_handle\":\"new_user58_tag\",\"unknown_field\":{\"x\":[1,2]}}]}",
+   "query": "",
+   "key": "k144"
+  },
+  {
+   "t": "export"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/me",
+   "auth": {
+    "user": "u_cy",
+    "ord": 2
+   },
+   "body": null,
+   "query": "as_of=@as_of@&known_at=@known_at@",
+   "inst": {
+    "as_of": [
+     "raw",
+     "1727184000"
+    ],
+    "known_at": [
+     "raw",
+     "1727184000"
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests",
+   "auth": {
+    "user": "u_bob",
+    "ord": 7
+   },
+   "body": "{\"note\":\"\\ud83c\\udf55 caf\\u00e9 \\u00f1 \\\"q\\\" <b>\",\"payer_handle\":\"dee\",\"amount\":null}",
+   "query": "",
+   "key": null
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments",
+   "auth": {
+    "user": "u_cy",
+    "ord": 0
+   },
+   "body": "{\"amount\":454,\"visibility\":\"private\",\"to_handle\":\"dee\",\"note\":\"\\ud83c\\udf55 caf\\u00e9 \\u00f1 \\\"q\\\" <b>\"}",
+   "query": "",
+   "key": "k146"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_cy",
+    "ord": 6
+   },
+   "body": null,
+   "query": "snapshot=@SNAP@",
+   "inst": {},
+   "snap": "msnap33"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_ada",
+    "ord": 1
+   },
+   "body": "{\"to_handle\":\"dee\",\"amount\":6459}",
+   "query": "",
+   "key": "k147"
+  },
+  {
+   "t": "sleep",
+   "s": 2.49
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_ada",
+    "ord": 4
+   },
+   "body": "{\"expected_revision\":2,\"reason\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"amount\":3,\"effective_at\":\"@eff@\"}",
+   "query": "",
+   "ref": "mp29",
+   "key": "k148",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "ev",
+     [
+      "r",
+      "p_s1",
+      2
+     ],
+     -1000,
+     0
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_ada",
+    "ord": 6
+   },
+   "body": "{\"amount\": 4380, \"to_handle\": \"bob\", \"visibility\": \"private\", \"note\": \"changed\"}",
+   "query": "",
+   "key": "k133"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_dee",
+    "ord": 6
+   },
+   "body": "{\"to_handle\":\"ada\",\"amount\":231}",
+   "query": "",
+   "key": "k149"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 0
+   },
+   "body": "{\"corrections\":[{\"amount\":700,\"expected_revision\":1,\"effective_at\":\"@e0@\",\"reason\":\"batch fix\",\"payment_id\":\"@P:mp48@\"}]}",
+   "query": "",
+   "key": "k150",
+   "inst": {
+    "e0": [
+     "now",
+     -30,
+     330
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_ada",
+    "ord": 0
+   },
+   "body": "{\"to_handle\":\"dee\",\"amount\":6459}",
+   "query": "",
+   "key": "k147"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/settlements",
+   "auth": {
+    "user": "u_bob",
+    "ord": 1
+   },
+   "body": "{\"transfers\":[{\"from_handle\":\"bob\",\"amount\":690,\"to_handle\":\"ada\"},{\"to_handle\":\"ada\",\"from_handle\":\"cy\",\"unknown_field\":{\"x\":[1,2]},\"amount\":573},{\"to_handle\":\"bob\",\"from_handle\":\"ada\",\"amount\":307,\"note\":\"\"}]}",
+   "query": "",
+   "key": "k151"
+  },
+  {
+   "t": "burst",
+   "ops": [
+    {
+     "t": "call",
+     "method": "GET",
+     "path": "/activity",
+     "auth": {
+      "user": "u_ada",
+      "ord": 3
+     },
+     "body": null,
+     "query": "unknown=1"
+    },
+    {
+     "t": "call",
+     "method": "GET",
+     "path": "/activity",
+     "auth": {
+      "user": "u_ada",
+      "ord": 3
+     },
+     "body": null,
+     "query": "unknown=1"
+    },
+    {
+     "t": "call",
+     "method": "GET",
+     "path": "/activity",
+     "auth": {
+      "user": "u_ada",
+      "ord": 6
+     },
+     "body": null,
+     "query": "unknown=1"
+    },
+    {
+     "t": "call",
+     "method": "GET",
+     "path": "/activity",
+     "auth": {
+      "user": "u_ada",
+      "ord": 6
+     },
+     "body": null,
+     "query": "unknown=1"
+    }
+   ]
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/me",
+   "auth": {
+    "user": "u_ada",
+    "ord": 2
+   },
+   "body": null,
+   "query": "as_of=@as_of@",
+   "inst": {
+    "as_of": [
+     "raw",
+     ""
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_dee",
+    "ord": 7
+   },
+   "body": "{\"to_handle\":\"bob\",\"amount\":497}",
+   "query": "",
+   "key": "k152"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_ada",
+    "ord": 1
+   },
+   "body": null,
+   "query": "snapshot=@SNAP@&limit=abc",
+   "inst": {},
+   "snap": "msnap36"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/settlements",
+   "auth": {
+    "user": "u_ada",
+    "ord": 0
+   },
+   "body": "{\"transfers\":[{\"from_handle\":\"cy\",\"to_handle\":\"ada\",\"visibility\":\"PUBLIC\",\"amount\":599}]}",
+   "query": "",
+   "key": ""
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/settlements",
+   "auth": {
+    "user": "u_ada",
+    "ord": 7
+   },
+   "body": "{\"transfers\":[{\"to_handle\":\"cy\",\"note\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"from_handle\":\"new_user58_tag\",\"amount\":194}]}",
+   "query": "",
+   "key": "k154"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_cy",
+    "ord": 3
+   },
+   "body": "{\"amount\":0,\"expected_revision\":2,\"reason\":\"fix\",\"effective_at\":\"@eff@\"}",
+   "query": "",
+   "ref": "mp36",
+   "key": "k155",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "now",
+     -30,
+     330
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/auth/signup",
+   "auth": null,
+   "body": "{\"password\":\"correct horse\",\"email\":\"New.User156+tag@Example.com\",\"display_name\":\"User 156\"}",
+   "query": "",
+   "after": "session"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/settlements",
+   "auth": {
+    "user": "u_ada",
+    "ord": 5
+   },
+   "body": "{\"transfers\":[{\"from_handle\":\"new_user156_tag\",\"to_handle\":\"cy\",\"amount\":1},{\"from_handle\":\"dee\",\"unknown_field\":{\"x\":[1,2]},\"to_handle\":\"new_user156_tag\",\"amount\":3217},{\"from_handle\":\"bob\",\"to_handle\":\"cy\",\"amount\":715}]}",
+   "query": "",
+   "key": "k157"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments",
+   "auth": {
+    "user": "mu75",
+    "ord": 3
+   },
+   "body": "{\"amount\":1,\"note\":7,\"visibility\":\"PUBLIC\",\"to_handle\":\"bob\"}",
+   "query": "",
+   "key": "k158"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/activity",
+   "auth": {
+    "user": "u_ada",
+    "ord": 3
+   },
+   "body": null,
+   "query": ""
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests",
+   "auth": {
+    "user": "u_ada",
+    "ord": 1
+   },
+   "body": "{\"amount\":58,\"payer_handle\":\"new_user156_tag\"}",
+   "query": "",
+   "key": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests",
+   "auth": {
+    "user": "u_ada",
+    "ord": 4
+   },
+   "body": "{\"payer_handle\":\"bob\",\"amount\":2}",
+   "query": "",
+   "key": "k160"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/payments/{ref}/revisions",
+   "auth": {
+    "user": "u_dee",
+    "ord": 3
+   },
+   "body": null,
+   "query": "",
+   "ref": "mp49",
+   "refns": "p"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_cy",
+    "ord": 3
+   },
+   "body": "{\"to_handle\":\"new_user156_tag\",\"amount\":779,\"visibility\":\"private\"}",
+   "query": "",
+   "key": "k161"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/auth/signup",
+   "auth": null,
+   "body": "{\"display_name\":\"User 162\",\"password\":\"correct horse\",\"email\":\"@nolocal.com\"}",
+   "query": "",
+   "after": "session"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests/{ref}/decline",
+   "auth": {
+    "user": "u_ada",
+    "ord": 0
+   },
+   "body": null,
+   "query": "",
+   "ref": "mrq51"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests/{ref}/pay",
+   "auth": {
+    "user": "u_dee",
+    "ord": 1
+   },
+   "body": "{\"visibility\":\"bogus\"}",
+   "query": "",
+   "ref": "mrq45",
+   "key": "k163"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/me",
+   "auth": {
+    "user": "mu75",
+    "ord": 2
+   },
+   "body": null,
+   "query": "as_of=@as_of@&known_at=@known_at@",
+   "inst": {
+    "as_of": [
+     "ev",
+     [
+      "p",
+      "mp24"
+     ],
+     1,
+     60
+    ],
+    "known_at": [
+     "ev",
+     [
+      "p",
+      "mp39"
+     ],
+     -1000000,
+     -180
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_dee",
+    "ord": 1
+   },
+   "body": "{\"to_handle\": \"bob\", \"amount\": 5, \"note\": \"dl-163\"}",
+   "query": "",
+   "key": "dl-163"
+  },
+  {
+   "t": "burst",
+   "ops": [
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/capture",
+     "auth": {
+      "user": "u_bob",
+      "ord": 1
+     },
+     "body": "{\"amount\":1,\"final\":false}",
+     "query": "",
+     "ref": "ma79",
+     "refns": "a",
+     "key": "dl-163-165"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/capture",
+     "auth": {
+      "user": "u_bob",
+      "ord": 4
+     },
+     "body": "{\"amount\":1,\"final\":false}",
+     "query": "",
+     "ref": "ma79",
+     "refns": "a",
+     "key": "dl-163-166"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/capture",
+     "auth": {
+      "user": "u_bob",
+      "ord": 7
+     },
+     "body": "{}",
+     "query": "",
+     "ref": "ma79",
+     "refns": "a",
+     "key": "dl-163-167"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/payments",
+     "auth": {
+      "user": "u_dee",
+      "ord": 7
+     },
+     "body": "{\"to_handle\": \"bob\", \"amount\": 1}",
+     "query": "",
+     "key": "dl-163-168"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/capture",
+     "auth": {
+      "user": "u_bob",
+      "ord": 3
+     },
+     "body": "{\"amount\":1,\"final\":false}",
+     "query": "",
+     "ref": "ma79",
+     "refns": "a",
+     "key": "dl-163-169"
+    },
+    {
+     "t": "call",
+     "method": "POST",
+     "path": "/authorizations/{ref}/void",
+     "auth": {
+      "user": "u_dee",
+      "ord": 2
+     },
+     "body": null,
+     "query": "",
+     "ref": "ma79",
+     "refns": "a"
+    }
+   ],
+   "deadline": {
+    "aid": "ma79",
+    "offsets": [
+     -0.02,
+     -0.01,
+     0.015,
+     0.002,
+     -0.004,
+     -0.04
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "mu75",
+    "ord": 1
+   },
+   "body": "{\"to_handle\":\"cy\",\"amount\":1,\"visibility\":\"private\"}",
+   "query": "",
+   "key": ""
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_cy",
+    "ord": 5
+   },
+   "body": "{\"effective_at\":\"@eff@\",\"expected_revision\":1,\"unknown_field\":{\"x\":[1,2]},\"amount\":0,\"reason\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+   "query": "",
+   "ref": "mp69",
+   "key": "k172",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "ev",
+     [
+      "p",
+      "mp33"
+     ],
+     -1000,
+     330
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/settlements",
+   "auth": {
+    "user": "u_ada",
+    "ord": 0
+   },
+   "body": "{\"transfers\": [{\"from_handle\": \"ada\", \"to_handle\": \"bob\", \"amount\": 1000, \"note\": \"sb-173\"}, {\"from_handle\": \"ada\", \"to_handle\": \"dee\", \"amount\": 1000, \"note\": \"sb-173\"}]}",
+   "query": "",
+   "key": "sb-173"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 7
+   },
+   "body": "{\"corrections\":[{\"reason\":\"batch fix\",\"amount\":0,\"payment_id\":\"@P:mp82@\",\"expected_revision\":1,\"effective_at\":\"@s@\"}]}",
+   "query": "",
+   "inst": {
+    "s": [
+     "ev",
+     [
+      "p",
+      "mp83"
+     ],
+     0,
+     0
+    ],
+    "s2": [
+     "ev",
+     [
+      "p",
+      "mp83"
+     ],
+     0,
+     -180
+    ],
+    "x": [
+     "now",
+     -60,
+     0
+    ]
+   },
+   "key": "sb-173-incomplete"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 1
+   },
+   "body": "{\"corrections\":[{\"reason\":\"batch fix\",\"effective_at\":\"@s@\",\"expected_revision\":1,\"payment_id\":\"@P:mp82@\",\"amount\":0},{\"reason\":\"batch fix\",\"effective_at\":\"@x@\",\"amount\":0,\"expected_revision\":1,\"payment_id\":\"@P:mp83@\"}]}",
+   "query": "",
+   "inst": {
+    "s": [
+     "ev",
+     [
+      "p",
+      "mp82"
+     ],
+     0,
+     0
+    ],
+    "s2": [
+     "ev",
+     [
+      "p",
+      "mp82"
+     ],
+     0,
+     -180
+    ],
+    "x": [
+     "now",
+     -60,
+     0
+    ]
+   },
+   "key": "sb-173-unequal"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/corrections",
+   "auth": {
+    "user": "u_ada",
+    "ord": 7
+   },
+   "body": "{\"reason\":\"fix\",\"amount\":566,\"effective_at\":\"@eff@\",\"expected_revision\":1}",
+   "query": "",
+   "ref": "mp82",
+   "key": "k174",
+   "refns": "p",
+   "inst": {
+    "eff": [
+     "raw",
+     ""
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 5
+   },
+   "body": "{\"corrections\":[{\"amount\":1,\"effective_at\":\"@s@\",\"payment_id\":\"@P:mp82@\",\"expected_revision\":1,\"reason\":\"batch fix\"},{\"expected_revision\":1,\"reason\":\"batch fix\",\"amount\":0,\"payment_id\":\"@P:mp83@\",\"effective_at\":\"@s2@\"}]}",
+   "query": "",
+   "inst": {
+    "s": [
+     "ev",
+     [
+      "p",
+      "mp83"
+     ],
+     -1000000,
+     0
+    ],
+    "s2": [
+     "ev",
+     [
+      "p",
+      "mp83"
+     ],
+     -1000000,
+     330
+    ],
+    "x": [
+     "now",
+     -60,
+     0
+    ]
+   },
+   "key": "sb-173-ok"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/refunds",
+   "auth": {
+    "user": "u_dee",
+    "ord": 2
+   },
+   "body": "{\"amount\":1000000001}",
+   "query": "",
+   "ref": "mp83",
+   "key": "k175",
+   "refns": "p"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 5
+   },
+   "body": "{\"corrections\":[{\"amount\":1,\"effective_at\":\"@s@\",\"payment_id\":\"@P:mp82@\",\"expected_revision\":1,\"reason\":\"batch fix\"},{\"expected_revision\":1,\"reason\":\"batch fix\",\"amount\":0,\"payment_id\":\"@P:mp83@\",\"effective_at\":\"@s2@\"}]}",
+   "query": "",
+   "inst": {
+    "s": [
+     "ev",
+     [
+      "p",
+      "mp83"
+     ],
+     -1000000,
+     0
+    ],
+    "s2": [
+     "ev",
+     [
+      "p",
+      "mp83"
+     ],
+     -1000000,
+     330
+    ],
+    "x": [
+     "now",
+     -60,
+     0
+    ]
+   },
+   "key": "sb-173-ok"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 3
+   },
+   "body": "{\"corrections\":[{\"reason\":\"x\",\"amount\":1,\"payment_id\":\"p_nope\",\"effective_at\":\"@e0@\",\"expected_revision\":1}]}",
+   "query": "",
+   "key": "k176",
+   "inst": {
+    "e0": [
+     "now",
+     -5,
+     0
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/authorizations",
+   "auth": {
+    "user": "mu75",
+    "ord": 2
+   },
+   "body": null,
+   "query": "limit=2&offset=1.0&direction=sideways"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/authorizations",
+   "auth": {
+    "user": "mu75",
+    "ord": 0
+   },
+   "body": "{\n \"amount\": 1,\n \"to_handle\": \"cy\",\n \"visibility\": \"private\"\n}",
+   "query": "",
+   "key": ""
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/payments/{ref}/refunds",
+   "auth": {
+    "user": "u_bob",
+    "ord": 5
+   },
+   "body": "{\"amount\":1000000001}",
+   "query": "",
+   "ref": "mp39",
+   "key": "k177",
+   "refns": "p"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests/{ref}/decline",
+   "auth": {
+    "user": "u_cy",
+    "ord": 7
+   },
+   "body": null,
+   "query": "",
+   "ref": "rq_s2"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/settlements",
+   "auth": {
+    "user": "u_ada",
+    "ord": 2
+   },
+   "body": "{\"transfers\":[{\"from_handle\":\"nobody_here\",\"to_handle\":\"new_user58_tag\",\"amount\":2524}]}",
+   "query": "",
+   "key": "k178"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/correction-batches",
+   "auth": {
+    "user": "u_ada",
+    "ord": 0
+   },
+   "body": "{\"corrections\":[{\"amount\":7,\"expected_revision\":1,\"payment_id\":\"@P:mp68@\",\"effective_at\":\"@s@\",\"reason\":\"batch fix\"}]}",
+   "query": "",
+   "key": "k179",
+   "inst": {
+    "s": [
+     "ev",
+     [
+      "p",
+      "mp68"
+     ],
+     0,
+     0
+    ],
+    "s2": [
+     "ev",
+     [
+      "p",
+      "mp68"
+     ],
+     0,
+     60
+    ]
+   }
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests/{ref}/pay",
+   "auth": {
+    "user": "u_ada",
+    "ord": 4
+   },
+   "body": "{\"visibility\":\"bogus\"}",
+   "query": "",
+   "ref": "mrq40",
+   "key": "k180"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests/{ref}/pay",
+   "auth": {
+    "user": "u_bob",
+    "ord": 4
+   },
+   "body": "{}",
+   "query": "",
+   "ref": "mrq65",
+   "key": "k85"
+  },
+  {
+   "t": "call",
+   "method": "POST",
+   "path": "/requests",
+   "auth": {
+    "user": "u_cy",
+    "ord": 6
+   },
+   "body": "{\n \"amount\": 100.0,\n \"note\": \"  spaced  \",\n \"payer_handle\": \"bob\"\n}",
+   "query": "",
+   "key": "000137xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/statement",
+   "auth": {
+    "user": "u_cy",
+    "ord": 2
+   },
+   "body": null,
+   "query": "snapshot=@SNAP@&limit=1e2",
+   "inst": {},
+   "snap": "msnap33"
+  },
+  {
+   "t": "call",
+   "method": "GET",
+   "path": "/authorizations",
+   "auth": {
+    "user": "u_ada",
+    "ord": 1
+   },
+   "body": null,
+   "query": ""
+  }
+ ]
+}

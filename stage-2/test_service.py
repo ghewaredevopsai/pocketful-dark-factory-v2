@@ -850,7 +850,9 @@ class SeededAuthorizations(unittest.TestCase):
             {"id": "a_2", "from_user_id": "u_ada", "to_user_id": "u_bob", "amount": 1000,
              "status": "open", "expires_at": iso_in(-3600)},
             {"id": "a_3", "from_user_id": "u_bob", "to_user_id": "u_ada", "amount": 100,
-             "status": "voided", "expires_at": iso_in(3600)}])
+             "status": "voided", "expires_at": iso_in(3600)},
+            {"id": "a_4", "from_user_id": "u_bob", "to_user_id": "u_cy", "amount": 0,
+             "status": "open", "expires_at": iso_in(-7000)}])
         reset(fx)
         ada, bob = login("ada"), login("bob")
         m = me(ada)
@@ -858,6 +860,7 @@ class SeededAuthorizations(unittest.TestCase):
         st = {x["authorization_id"]: x["status"] for x in
               call("GET", "/authorizations", token=ada)[1]["authorizations"]}
         self.assertEqual(st, {"a_1": "open", "a_2": "expired", "a_3": "voided"})
+        self.assertEqual(me(bob)["held"], 0)
         s, p, _ = call("POST", "/authorizations/a_1/capture", {}, bob, "k")
         self.assertEqual((s, p["amount"]), (201, 2000))
         # M1: generated ids never collide with seeded ids

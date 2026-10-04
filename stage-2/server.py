@@ -614,7 +614,7 @@ def state_from_fixture(fx):
         fresh_id(aid, "authorization")
         if frm not in st.users or to not in st.users or frm == to:
             raise invalid("authorization references an unknown user or pays itself")
-        if amt < 1 or amt > MAX_AMOUNT:
+        if amt < 0 or amt > MAX_AMOUNT:  # seeded data, like seeded payments/requests, may carry 0
             raise invalid("authorization amount out of range")
         if vis not in ("public", "private"):
             raise invalid("bad visibility")

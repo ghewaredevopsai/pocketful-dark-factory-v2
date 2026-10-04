@@ -3,7 +3,7 @@
 driver and probes3.py.
 
 Usage: python3 faults3.py <stage-3 dir> <workdir> <model dir (contains stage-3/model)> <docker network> [stage-2 base]
-With a stage-2 base, probe_s2_closed_hold_history.py also judges every plant (stage-2 holds closed before upgrade).
+With a stage-2 base, probe_s2_closed_hold_history.py also judges every plant (stage-2 holds closed before upgrade);\nprobe_capture_after_deadline.py (30 attempts) judges every plant for the capture/expiry stamp race.
 """
 import os
 import shutil
@@ -30,6 +30,7 @@ FAULTS = {
                                          '            self.users[a["from_user_id"]]["held"] -= remaining(a)\n            self.close_auth(a, "expired")'),
     "F10_closed_stage2_holds_lose_history": ('        a["_caps"] = later\n',
                                              '        a["_caps"] = later\n        if a["status"] != "open":\n            a["_ct"], a["_init"], a["_caps"] = None, 0, []\n'),
+    "F11_capture_void_stamped_after_clock_check": ("        if self.op_ts is not None:\n            return self.op_ts\n", ""),
     "F9_historical_release_twice": ("            out.append((close, -(a[\"_init\"] - captured)))\n",
                                     "            out.append((close, -(a[\"_init\"] - captured)))\n            out.append((close, -(a[\"_init\"] - captured)))\n"),
 }
@@ -67,6 +68,10 @@ def main():
             if "FAIL 0" not in hist.stdout:
                 prb.returncode = 1
                 prb.stdout += "\nFAIL probe_s2_closed_hold_history: " + " | ".join(l for l in hist.stdout.splitlines() if l.startswith("FAIL"))[:200]
+        late = sh("docker run --rm --network %s -v %s:/r:ro -w /r python:3.12-slim python probe_capture_after_deadline.py %s 30" % (net, review, base))
+        if late.returncode == 1:
+            prb.returncode = 1
+            prb.stdout += "\nFAIL probe_capture_after_deadline: " + " | ".join(l.strip() for l in late.stdout.splitlines() if "late capture" in l or "expires_at " in l)[:200]
         sh("docker rm -f %s" % tag)
         dc, pc = drv.returncode == 1, prb.returncode == 1
         caught.append((name, dc, pc))

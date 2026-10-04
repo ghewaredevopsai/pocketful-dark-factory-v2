@@ -26,4 +26,7 @@ and one correction changing the balance. They leave out everything below; what c
 | Holds seeded closed on stage 2 hold nothing after import (D2/D3 regression) | `probe_s2_seeded_closed_holds.py` |
 | Capture / void racing the clock deadline: no capture or void recorded at or after `expires_at` | `probe_capture_after_deadline.py`, `probe_void_after_deadline.py` |
 
-Fault injection (`faults3.py`, F1–F10) results are in `VERDICT.md`.
+| Payments / new holds funded by a hold expiring mid-burst, corrections with effective_at = now (one instant per write) | `probe_late_stamp_other.py` |
+| Hold exhausted by captures before its deadline (adjudication of probes2 p_races section 4) | `probe_exhaust_before_deadline.py` |
+
+Fault injection (`faults3.py`, F1–F11) results are in `VERDICT.md`.

@@ -482,10 +482,15 @@ def p_races():
     cx = auth_of(t["u0"], c["authorization_id"])
     n201 = st.count(201)
     late = [r for r in rs if r[0][0] == 201 and datetime.datetime.fromisoformat(r[0][1]["created_at"]) >= deadline]
-    check("capture/expiry race: only 201 or 409 authorization_expired", set(st) <= {201, 409} and all(code(r[0][1]) == "authorization_expired" for r in rs if r[0][0] == 409), sorted(set(st)))
+    exhausted = cx["status"] == "captured" and cx["captured_amount"] == cx["amount"]
+    # Two valid outcomes (fixed in stage-3 review round 2): the deadline closes the hold (409 authorization_expired),
+    # or 100 x 10 exhaust it first (status captured; the rest 409 authorization_not_open). Never anything else.
+    allowed = {"authorization_expired"} | ({"authorization_not_open"} if exhausted else set())
+    check("capture/expiry race: only 201 or 409 authorization_expired (or not_open once exhausted)",
+          set(st) <= {201, 409} and all(code(r[0][1]) in allowed for r in rs if r[0][0] == 409), sorted(set(st)))
     check("no capture created at/after expires_at", not late, [r[0][1]["created_at"] for r in late][:3])
     w0, w1 = me(t["u0"]), me(t["u1"])
-    check("after race: captured %d x 10, held 0, released exactly once" % n201, cx["status"] == "expired" and cx["captured_amount"] == 10 * n201
+    check("after race: captured %d x 10, held 0, released exactly once" % n201, (cx["status"] == "expired" or exhausted) and cx["captured_amount"] == 10 * n201
           and w0["held"] == 0 and w0["total"] == 1000 - 10 * n201 and w1["total"] == 1000 + 10 * n201, (cx["status"], cx["captured_amount"], w0, w1["total"]))
 
 

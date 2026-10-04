@@ -53,6 +53,7 @@ IDEM_PATHS = ("/payments", "/requests", "/splits", "/settlements", "/authorizati
 PASSWORD = "correct horse"
 NO_EMPTY_BODY = False  # --no-empty-body: skip the empty-body probe (to look past a known divergence)
 NO_SIGNUP = False  # --no-signup: generate no signups (to look past a known divergence on new wallets)
+PLAIN_HOLDS = False  # --plain-seeded-holds: seed only open, unexpired holds (to look past a known divergence)
 BAD_INSTANTS = ["2026-09-24", "2026-09-24T13:20:00", "", "yesterday", "2026-02-30T00:00:00Z",
                 "2026-09-24T25:00:00Z", "1727184000", "2026-09-24T13:20:00+0000"]
 
@@ -456,7 +457,7 @@ class Run:
             closed = None
             if a["status"] == "voided" and "closed_at" in a["unk"]:
                 if m.stage >= 3 and isinstance(pb.get("closed_at"), str):
-                    w = a.get("void_win") or (lo, hi)
+                    w = (a["c"] / US, a["void_win"][1]) if a.get("void_win") else (lo, hi)  # R76
                     closed = self.win(pb["closed_at"], w[0], w[1], "closed_at")
                 elif m.stage < 3 and "void_win" not in a:  # stage 2 shows no closed_at: estimate, refine later
                     a["void_win"] = (lo, hi)
@@ -468,7 +469,7 @@ class Run:
                 a = S["auths"].get(aid)
                 if a and a["status"] == "voided" and "closed_at" in a["unk"] and a.get("void_win") \
                         and isinstance(it.get("closed_at"), str):
-                    w = a["void_win"]
+                    w = (a["c"] / US, a["void_win"][1])  # R76: anywhere from creation to the void call
                     m.adopt_auth(aid, closed=self.win(it["closed_at"], w[0], w[1], "closed_at (legacy void)"))
 
     def explain(self, model, b, fn, pres):
@@ -619,6 +620,24 @@ class Run:
             self.fail(i, op, f"stage-{op['to']} import of the stage-{op['from']} export must return 204",
                       product={k: pres.get(k) for k in ("status", "raw", "err")})
         self.snap = None
+        if op["to"] >= 3:  # adopt the void instants the stage-3 service reports for holds voided before (R76)
+            S = self.model.s
+            for uid in S["users"]:
+                s = self.live_session(uid)
+                if s is None:
+                    continue
+                r = http_call(self.base, "GET", "/authorizations", "direction=outgoing&limit=200",
+                              {"Authorization": "Bearer " + s["ptok"]}, None)
+                for it in (r.get("body") or {}).get("authorizations", []) if isinstance(r.get("body"), dict) else []:
+                    aid = self.b.p2m.get(("a", it.get("authorization_id")))
+                    a = S["auths"].get(aid)
+                    if a and a["status"] == "voided" and "closed_at" in a["unk"] and a.get("void_win") \
+                            and isinstance(it.get("closed_at"), str):
+                        try:
+                            v = self.win(it["closed_at"], a["c"] / US, a["void_win"][1], "closed_at (legacy void)")
+                        except Mismatch as e:
+                            self.fail(i, op, str(e))
+                        self.model.adopt_auth(aid, closed=v)
 
     def import_(self, i, op):
         v = op["variant"]
@@ -838,6 +857,8 @@ def gen_fixture(rng, stage=3):
         frm, to = users[k], users[(k + 1) % n]
         st = rng.choice(["open", "open", "open", "captured", "voided", "expired"])
         rel = rng.choice([1, 1, -1]) * rng.randint(3700, 7200)  # seeded expiry is >= 1 h from reset
+        if PLAIN_HOLDS:
+            st, rel = "open", abs(rel)
         amt = max(1, min(frm["balance"], 10 ** 9) // 3)
         if st == "open" and rel > 0 and frm["balance"] < 1:
             continue
@@ -1486,10 +1507,11 @@ def main():
     ap.add_argument("--no-shrink", action="store_true")
     ap.add_argument("--no-empty-body", action="store_true")
     ap.add_argument("--no-signup", action="store_true", help="generate no signups")
+    ap.add_argument("--plain-seeded-holds", action="store_true", help="seed only open, unexpired holds")
     ap.add_argument("--coverage", action="store_true", help="print product status counts per endpoint")
     a = ap.parse_args()
-    global NO_EMPTY_BODY, NO_SIGNUP
-    NO_EMPTY_BODY, NO_SIGNUP = a.no_empty_body, a.no_signup
+    global NO_EMPTY_BODY, NO_SIGNUP, PLAIN_HOLDS
+    NO_EMPTY_BODY, NO_SIGNUP, PLAIN_HOLDS = a.no_empty_body, a.no_signup, a.plain_seeded_holds
     bases = {3: a.base, 2: a.stage2_base, 1: a.stage1_base}
     for base in filter(None, bases.values()):
         if not wait_healthy(base):

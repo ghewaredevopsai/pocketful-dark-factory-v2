@@ -347,8 +347,11 @@ R75. A stage-3 service must import its own stage-1 and stage-2 exports (204). Th
 original amount at its original `created_at`. Settlement members and captures stay immutable. Holds keep
 their creation and capture instants.
 
-R76. Holds voided before the upgrade: stage 2 showed no void instant. After the upgrade, `closed_at` may be
-null or any instant inside the original void call's window. When it is an instant, the model adopts it.
+R76. Holds voided before the upgrade (stage 2 exposed no void instant): after the upgrade `closed_at` may be
+null or any instant from the hold's creation to the end of the original void call; when it is an instant the
+model adopts it (and so its historical held). Reading taken leniently because a stage-2 export need not carry
+the void instant; a value before the void call is reported as an observation (information lost on import),
+not a divergence.
 
 ## Concurrency and snapshots
 

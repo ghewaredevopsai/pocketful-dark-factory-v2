@@ -20,7 +20,7 @@ python3 stage-3/model/driver.py --base http://127.0.0.1:8080 --replay /tmp/diff-
 python3 stage-3/model/driver.py --base S3 --stage1-base S1 --stage2-base S2 --seeds 101-110
 ```
 
-Flags: `--coverage` prints product status counts per endpoint; `--no-shrink`; `--no-signup` and `--no-empty-body`
+Flags: `--coverage` prints product status counts per endpoint; `--no-shrink`; `--no-signup`, `--plain-seeded-holds` and `--no-empty-body`
 switch off one generator family to look past a known divergence.
 
 Each seed draws a fixture with consistent seeded history (EUR/JPY/BHD, 3–6 users, seeded payments dated in the past

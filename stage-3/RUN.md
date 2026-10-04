@@ -1,9 +1,9 @@
-# Pocketful stage 2 — run
+# Pocketful stage 3 — run
 
 Build and start (from this folder):
 
 ```sh
-docker build -t pocketful-s2 . && docker run --rm -e PORT=8080 -p 8080:8080 pocketful-s2
+docker build -t pocketful-s3 . && docker run --rm -e PORT=8080 -p 8080:8080 pocketful-s3
 ```
 
 Health: `curl http://localhost:8080/health` → `{"status": "ok"}`.
@@ -34,3 +34,9 @@ uses `available`. Expiry is lazy: each locked operation first closes holds whose
 the remainder exactly once. The browser client keeps one Idempotency-Key per unchanged form body, so a double
 submit or a retry after a lost response is a replay; refreshes carry a generation number and an older response
 never overwrites a newer one.
+
+History (stage 3): each payment keeps immutable revisions (amount, effective_at, recorded_at, reason); each user keeps
+an opening balance; each hold keeps its lifecycle (creation, captures, close). `as_of`, `known_at` and statements are
+computed from those records under the same lock: pick each payment's latest revision recorded at or before
+`known_at`, apply it at its effective time, and add hold events known by then. Statement snapshots store the
+computed result and are paged from it.

@@ -35,6 +35,9 @@ function h(tag, attrs, ...children) {
   return el;
 }
 
+/** replaceChildren that skips null/false placeholders (replaceChildren would print "null"). */
+function put(el, ...kids) { el.replaceChildren(...kids.flat().filter((k) => k !== null && k !== undefined && k !== false)); }
+
 function newKey() {
   const b = new Uint8Array(16);
   crypto.getRandomValues(b);
@@ -226,7 +229,8 @@ function pageNotFound(main) {
 /* ------------------------------------------------------------------ shared pieces */
 
 function field(label, input, hint) {
-  const id = input.id || (input.id = "f-" + Math.random().toString(36).slice(2, 9));
+  const target = input.matches("input,select") ? input : input.querySelector("input,select");
+  const id = target.id || (target.id = "f-" + Math.random().toString(36).slice(2, 9));
   return h("div", { class: "field" }, h("label", { for: id }, label), input, hint ? h("span", { class: "hint" }, hint) : null);
 }
 
@@ -500,7 +504,7 @@ function pageRequests(main) {
       h("div", { class: "card-head" }, h("h2", {}, title), h("p", {}, rows.length + (rows.length === 1 ? " request" : " requests"))),
       h("ul", { class: "list", testid }, rows.map((r) => item(r, inc))),
       rows.length ? null : h("p", { class: "hint" }, emptyText));
-    lists.replaceChildren(
+    put(lists,
       !incoming.length && !outgoing.length ? h("div", { class: "empty", testid: "empty-requests" },
         h("strong", {}, "No requests yet"), "Ask someone for money from your wallet, or split a bill.") : null,
       section("Waiting for you", "incoming-list", incoming, true, "Nobody is asking you for money."),
@@ -650,8 +654,8 @@ function pageAuthorizations(main) {
           a.status === "open" ? h("span", {}, "Still held " + money(a.remaining_amount)) : null,
           a.captured_amount > 0 && a.status !== "captured" ? h("span", {}, "Collected " + money(a.captured_amount)) : null,
           a.status === "captured" ? h("span", {}, "Collected ", h("span", { testid: "authorization-captured-" + id }, money(a.captured_amount))) : null,
-          h("span", { title: when(a.expires_at) }, a.status === "open" ? "Expires " : "Expiry ",
-            h("time", { testid: "authorization-expires-" + id, datetime: a.expires_at }, a.expires_at)))),
+          h("span", {}, (a.status === "open" ? "Expires " : "Expired ") + when(a.expires_at)),
+          h("time", { class: "tech", testid: "authorization-expires-" + id, datetime: a.expires_at, title: "Expiry (RFC 3339)" }, a.expires_at))),
       h("div", { class: "item-side" },
         h("span", { class: "item-amount" }, h("span", { testid: "authorization-amount-" + id }, money(a.amount))),
         h("span", { class: "badge b-" + a.status }, STATUS_LABEL[a.status])),
@@ -659,7 +663,7 @@ function pageAuthorizations(main) {
   }
 
   function paint(auths) {
-    list.replaceChildren(
+    put(list,
       auths.length ? null : h("div", { class: "empty", testid: "empty-authorizations" },
         h("strong", {}, "No holds"), "Reserve money for someone and they can collect it later."),
       h("ul", { class: "list", testid: "authorization-list" }, auths.map(item)));

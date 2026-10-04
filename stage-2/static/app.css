@@ -71,7 +71,7 @@ a { color: var(--primary); }
 }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
   box-shadow: var(--shadow); padding: 18px; min-width: 0; }
-.card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
 .card-head p { color: var(--muted); font-size: .9rem; }
 .narrow { max-width: 440px; margin: 24px auto; }
 
@@ -182,3 +182,5 @@ input:focus-visible, select:focus-visible { outline: 3px solid var(--focus); out
 .share .amount { font-weight: 650; }
 .loading-page { color: var(--muted); padding: 40px 0; text-align: center; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.tech { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .75rem; color: var(--muted);
+  overflow-wrap: anywhere; }

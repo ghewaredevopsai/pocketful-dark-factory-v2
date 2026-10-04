@@ -1021,5 +1021,374 @@ def call_raw(method, path, headers):
     return r.status, r.read(), r.getheader("Content-Type")
 
 
+# ---------------------------------------------------------------- stage 3
+
+from urllib.parse import quote
+
+
+def q(**kw):
+    return "?" + "&".join("%s=%s" % (k, quote(str(v), safe="")) for k, v in kw.items())
+
+
+def ts_after(iso_text, micro):
+    import datetime
+    return (datetime.datetime.fromisoformat(iso_text) + datetime.timedelta(microseconds=micro)).isoformat()
+
+
+def corr(tok, pid, key="c", **body):
+    return call("POST", "/payments/%s/corrections" % pid, body, tok, key)
+
+
+class Seeds(unittest.TestCase):
+    def test_seeded_created_at_and_future(self):
+        past = iso_in(-7200)
+        fx = fixture(payments=[{"id": "p_old", "from_user_id": "u_ada", "to_user_id": "u_bob", "amount": 500,
+                                "created_at": past},
+                               {"id": "p_now", "from_user_id": "u_bob", "to_user_id": "u_cy", "amount": 100}])
+        reset(fx)
+        ada, bob = login("ada"), login("bob")
+        feed = call("GET", "/activity", token=bob)[1]["payments"]
+        self.assertEqual([(p["payment_id"], p["created_at"]) for p in feed][1], ("p_old", past))
+        self.assertEqual(me(ada)["balance"], 10000)  # not replayed
+        self.assertEqual(call("GET", "/me" + q(as_of=iso_in(-10000)), token=ada)[1]["balance"], 10500)  # opening
+        self.assertEqual(call("GET", "/me" + q(as_of=past), token=ada)[1]["balance"], 10000)  # inclusive
+        new = call("POST", "/payments", {"to_handle": "bob", "amount": 1}, ada, "k")[1]
+        self.assertGreater(new["created_at"], feed[0]["created_at"])
+        bad = fixture(users=[user("zed", 5)])
+        bad["payments"] = []
+        bad = fixture(payments=[{"id": "p_f", "from_user_id": "u_ada", "to_user_id": "u_bob", "amount": 1,
+                                 "created_at": iso_in(3600)}])
+        s, b, _ = call("POST", "/_test/reset", bad)
+        self.assertEqual((s, b["error"]["code"]), (422, "validation_failed"))
+        self.assertEqual(me(ada)["balance"], 9999)  # unchanged
+
+
+class AsOf(Base):
+    def test_as_of_rules(self):
+        a = self.t["ada"]
+        self.assertNotIn("as_of", me(a))
+        p1 = call("POST", "/payments", {"to_handle": "bob", "amount": 300}, a, "1")[1]
+        p2 = call("POST", "/payments", {"to_handle": "bob", "amount": 200}, a, "2")[1]
+        at = lambda t: call("GET", "/me" + q(as_of=t), token=a)[1]
+        self.assertEqual(at(p1["created_at"])["balance"], 9700)
+        self.assertEqual(at(ts_after(p1["created_at"], -1))["balance"], 10000)
+        self.assertEqual(at(p2["created_at"])["balance"], 9500)
+        later = iso_in(3600)
+        b = at(later)
+        self.assertEqual((b["balance"], b["total"], b["available"], b["held"], b["as_of"]), (9500, 9500, 9500, 0, later))
+        z = "2026-01-01T00:00:00Z"
+        self.assertEqual(at(z)["as_of"], z)
+        for bad in ("", "2026-09-24", "2026-09-24T13:20:00", "yesterday", "2026-09-24T25:00:00+00:00"):
+            self.err(call("GET", "/me" + q(as_of=bad), token=a), 422, "validation_failed")
+            self.err(call("GET", "/me" + q(known_at=bad), token=a), 422, "validation_failed")
+        # an unencoded '+' arrives as a space and is still accepted
+        s, body, _ = call("GET", "/me?as_of=2030-01-01T00:00:00+00:00", token=a)
+        self.assertEqual((s, body["balance"]), (200, 9500))
+
+
+class Statement(Base):
+    def test_window_order_and_balances(self):
+        a, b = self.t["ada"], self.t["bob"]
+        p = [call("POST", "/payments", {"to_handle": "bob", "amount": 100 * (i + 1)}, a, "k%d" % i)[1]
+             for i in range(5)]
+        call("POST", "/payments", {"to_handle": "ada", "amount": 50}, b, "x")
+        call("POST", "/payments", {"to_handle": "cy", "amount": 7}, b, "y")  # public, not ada's
+        full = call("GET", "/statement", token=a)[1]
+        self.assertEqual([e["delta"] for e in full["entries"]], [-100, -200, -300, -400, -500, 50])
+        run = full["opening_balance"]
+        for e in full["entries"]:
+            run += e["delta"]
+            self.assertEqual(e["balance_after"], run)
+            self.assertEqual((e["revision"], e["effective_at"], e["recorded_at"]),
+                             (1, e["payment"]["created_at"], e["payment"]["created_at"]))
+        self.assertEqual((full["opening_balance"], full["closing_balance"], full["has_more"]), (10000, 8550, False))
+        self.assertTrue(full["snapshot"])
+        # half-open window [p1, p3)
+        w = call("GET", "/statement" + q(**{"from": p[1]["created_at"], "to": p[3]["created_at"]}), token=a)[1]
+        self.assertEqual([e["payment"]["payment_id"] for e in w["entries"]], [p[1]["payment_id"], p[2]["payment_id"]])
+        self.assertEqual((w["opening_balance"], w["closing_balance"]), (9900, 9400))
+        # pagination does not change balances
+        pg = call("GET", "/statement" + q(limit=2, offset=2), token=a)[1]
+        self.assertEqual(pg["entries"], full["entries"][2:4])
+        self.assertEqual((pg["opening_balance"], pg["closing_balance"], pg["has_more"]), (10000, 8550, True))
+        last = call("GET", "/statement" + q(limit=4, offset=4), token=a)[1]
+        self.assertEqual((len(last["entries"]), last["has_more"]), (2, False))
+        beyond = call("GET", "/statement" + q(limit=4, offset=40), token=a)[1]
+        self.assertEqual((beyond["entries"], beyond["has_more"]), ([], False))
+        self.assertEqual(call("GET", "/statement", token=self.t["cy"])[1]["entries"][0]["delta"], 7)
+        for bad in (dict(limit=0), dict(offset=-1), dict(to="x"), {"from": "2026-01-01"},
+                    {"from": iso_in(10), "to": iso_in(-10)}):
+            self.err(call("GET", "/statement" + q(**bad), token=a), 422, "validation_failed")
+        self.err(call("GET", "/statement"), 401, "unauthenticated")
+
+    def test_snapshots(self):
+        a = self.t["ada"]
+        p = call("POST", "/payments", {"to_handle": "bob", "amount": 100}, a, "1")[1]
+        first = call("GET", "/statement" + q(limit=1), token=a)[1]
+        tok = first["snapshot"]
+        call("POST", "/payments", {"to_handle": "bob", "amount": 5}, a, "2")
+        corr(a, p["payment_id"], expected_revision=1, amount=10, effective_at=p["created_at"], reason="fix")
+        again = call("GET", "/statement" + q(snapshot=tok, limit=1, offset=0), token=a)[1]
+        self.assertEqual((again["entries"], again["opening_balance"], again["closing_balance"], again["has_more"]),
+                         (first["entries"], 10000, 9900, False))
+        self.assertEqual(call("GET", "/statement" + q(snapshot=tok, offset=1), token=a)[1]["entries"], [])
+        for extra in ({"from": iso_in(-5)}, {"to": iso_in(5)}, {"known_at": iso_in(0)}):
+            self.err(call("GET", "/statement" + q(snapshot=tok, **extra), token=a), 422, "validation_failed")
+        self.err(call("GET", "/statement" + q(snapshot=tok), token=self.t["bob"]), 404, "not_found")
+        self.err(call("GET", "/statement" + q(snapshot="nope"), token=a), 404, "not_found")
+        reset()
+        a = login("ada")
+        self.err(call("GET", "/statement" + q(snapshot=tok), token=a), 404, "not_found")
+
+
+class Corrections(Base):
+    def pay(self, frm="ada", to="bob", amount=100, key="p"):
+        return call("POST", "/payments", {"to_handle": to, "amount": amount}, self.t[frm], key)[1]
+
+    def test_increase_decrease_revisions_and_feed(self):
+        a = self.t["ada"]
+        p = self.pay(amount=100)
+        pid = p["payment_id"]
+        s, r2, _ = corr(a, pid, "c1", expected_revision=1, amount=150, effective_at=p["created_at"], reason="tip")
+        self.assertEqual((s, r2["revision"], r2["amount"], r2["effective_at"], r2["reason"], r2["payment_id"]),
+                         (201, 2, 150, p["created_at"], "tip", pid))
+        self.assertEqual((me(a)["balance"], me(self.t["bob"])["balance"]), (9850, 2650))
+        s, r3, _ = corr(a, pid, "c2", expected_revision=2, amount=0, effective_at=p["created_at"], reason="refund")
+        self.assertEqual((me(a)["balance"], me(self.t["bob"])["balance"]), (10000, 2500))
+        self.assertGreater(r3["recorded_at"], r2["recorded_at"])
+        revs = call("GET", "/payments/%s/revisions" % pid, token=self.t["bob"])[1]["revisions"]
+        self.assertEqual([(r["revision"], r["amount"], r["reason"]) for r in revs], [(1, 100, ""), (2, 150, "tip"), (3, 0, "refund")])
+        self.assertEqual((revs[0]["effective_at"], revs[0]["recorded_at"]), (p["created_at"], p["created_at"]))
+        self.err(call("GET", "/payments/%s/revisions" % pid, token=self.t["cy"]), 404, "not_found")
+        self.err(call("GET", "/payments/%s/revisions" % pid), 401, "unauthenticated")
+        self.err(call("GET", "/payments/nope/revisions", token=a), 404, "not_found")
+        feed = call("GET", "/activity", token=a)[1]["payments"]
+        self.assertEqual([(x["payment_id"], x["amount"]) for x in feed], [(pid, 100)])  # original
+        st = call("GET", "/statement", token=a)[1]
+        self.assertEqual([(e["revision"], e["delta"], e["payment"]["amount"]) for e in st["entries"]], [(3, 0, 0)])
+        # replay returns the original revision 2 even after revision 3
+        s, again, _ = corr(a, pid, "c1", expected_revision=1, amount=150, effective_at=p["created_at"], reason="tip")
+        self.assertEqual((s, again), (200, r2))
+        self.err(corr(a, pid, "c1", expected_revision=1, amount=151, effective_at=p["created_at"], reason="tip"),
+                 409, "idempotency_key_reuse")
+        self.err(corr(a, pid, "c9", expected_revision=2, amount=5, effective_at=p["created_at"], reason="x"),
+                 409, "stale_revision")
+        # known_at selects older revisions; before the payment it contributes nothing
+        kn = lambda t: call("GET", "/me" + q(known_at=t), token=a)[1]
+        self.assertEqual(kn(r2["recorded_at"])["balance"], 9850)
+        self.assertEqual(kn(ts_after(r2["recorded_at"], -1))["balance"], 9900)
+        self.assertEqual(kn(ts_after(p["created_at"], -1))["balance"], 10000)
+        self.assertEqual(kn(r2["recorded_at"])["known_at"], r2["recorded_at"])
+        st2 = call("GET", "/statement" + q(known_at=r2["recorded_at"]), token=a)[1]
+        self.assertEqual([(e["revision"], e["delta"]) for e in st2["entries"]], [(2, -150)])
+        self.assertEqual(st2["known_at"], r2["recorded_at"])
+
+    def test_effective_time_moves_entry_between_windows(self):
+        a = self.t["ada"]
+        p = self.pay(amount=100)
+        earlier = iso_in(-3600)
+        corr(a, p["payment_id"], "c", expected_revision=1, amount=100, effective_at=earlier, reason="backdate")
+        st = call("GET", "/statement" + q(**{"from": iso_in(-60)}), token=a)[1]
+        self.assertEqual((st["entries"], st["opening_balance"]), ([], 9900))
+        self.assertEqual(call("GET", "/me" + q(as_of=iso_in(-1800)), token=a)[1]["balance"], 9900)
+        self.assertEqual(call("GET", "/me" + q(as_of=iso_in(-1800), known_at=p["created_at"]), token=a)[1]["balance"],
+                         10000)
+
+    def test_validation_and_permissions(self):
+        a = self.t["ada"]
+        p = self.pay()
+        pid = p["payment_id"]
+        ok = dict(expected_revision=1, amount=50, effective_at=p["created_at"], reason="r")
+        for i, bad in enumerate([dict(ok, expected_revision=0), dict(ok, expected_revision="1"), dict(ok, amount=-1),
+                                 dict(ok, amount=10 ** 9 + 1), dict(ok, amount=1.5), dict(ok, reason=""),
+                                 dict(ok, reason="x" * 201), dict(ok, reason=5), dict(ok, effective_at=iso_in(60)),
+                                 dict(ok, effective_at="2026-09-20"), dict(ok, effective_at="2026-09-20T12:00:00")]
+                                + [{k: v for k, v in ok.items() if k != f} for f in ok]):
+            self.err(corr(a, pid, "v%d" % i, **bad), 422, "validation_failed")
+        self.err(corr(self.t["bob"], pid, "x", **ok), 403, "forbidden")
+        self.err(corr(self.t["cy"], pid, "x", **ok), 403, "forbidden")
+        self.err(corr(a, "nope", "x", **ok), 404, "not_found")
+        self.err(call("POST", "/payments/%s/corrections" % pid, ok, None, "x"), 401, "unauthenticated")
+        self.err(call("POST", "/payments/%s/corrections" % pid, ok, a), 400, "missing_idempotency_key")
+        self.assertEqual(corr(a, pid, "v0", **ok)[0], 201)  # failed key was not claimed
+        self.assertEqual(corr(a, pid, "reason200", **dict(ok, expected_revision=2, reason="x" * 200))[0], 201)
+
+    def test_insufficient_then_historical_overdraft(self):
+        reset(fixture(users=[user("ada", 1000), user("bob", 0), user("cy", 0)]))
+        t = {h: login(h) for h in ("ada", "bob", "cy")}
+        p1 = call("POST", "/payments", {"to_handle": "bob", "amount": 500}, t["ada"], "1")[1]
+        call("POST", "/payments", {"to_handle": "cy", "amount": 500}, t["ada"], "2")
+        call("POST", "/payments", {"to_handle": "ada", "amount": 300}, t["cy"], "3")
+        before = (me(t["ada"]), call("GET", "/payments/%s/revisions" % p1["payment_id"], token=t["ada"])[1])
+        # current debit of 400 > ada's 300 available -> insufficient_funds first
+        self.err(corr(t["ada"], p1["payment_id"], "k", expected_revision=1, amount=900, effective_at=p1["created_at"],
+                      reason="x"), 409, "insufficient_funds")
+        # affordable now (200 <= 300) but ada would be -200 after the second payment -> historical_overdraft
+        self.err(corr(t["ada"], p1["payment_id"], "k", expected_revision=1, amount=700, effective_at=p1["created_at"],
+                      reason="x"), 409, "historical_overdraft")
+        after = (me(t["ada"]), call("GET", "/payments/%s/revisions" % p1["payment_id"], token=t["ada"])[1])
+        self.assertEqual(before, after)
+        # the same correction effective after the second payment is fine; the key was never claimed
+        s, r, _ = corr(t["ada"], p1["payment_id"], "k", expected_revision=1, amount=700, effective_at=iso_in(0),
+                       reason="x")
+        self.assertEqual(s, 201, r)
+        self.assertEqual(sum(me(t[h])["balance"] for h in t), 1000)
+        # receiver side: decreasing debits bob, who spent it
+        p4 = call("POST", "/payments", {"to_handle": "cy", "amount": 700}, t["bob"], "4")[1]
+        self.err(corr(t["ada"], p1["payment_id"], "k2", expected_revision=2, amount=0, effective_at=p1["created_at"],
+                      reason="x"), 409, "insufficient_funds")
+
+    def test_held_funds_block_correction_and_history_available(self):
+        reset(fixture(users=[user("ada", 1000), user("bob", 0), user("cy", 0)]))
+        t = {h: login(h) for h in ("ada", "bob", "cy")}
+        p1 = call("POST", "/payments", {"to_handle": "bob", "amount": 100}, t["ada"], "1")[1]
+        call("POST", "/authorizations", {"to_handle": "cy", "amount": 850}, t["ada"], "a")
+        # 100 more for bob: ada has 50 available now -> insufficient
+        self.err(corr(t["ada"], p1["payment_id"], "k", expected_revision=1, amount=200, effective_at=p1["created_at"],
+                      reason="x"), 409, "insufficient_funds")
+        self.assertEqual(corr(t["ada"], p1["payment_id"], "k", expected_revision=1, amount=150,
+                              effective_at=p1["created_at"], reason="x")[0], 201)
+
+    def test_combined_instant_boundary(self):
+        T = iso_in(-3600)
+        reset(fixture(users=[user("x", 100), user("y", 100), user("z", 100)], payments=[
+            {"id": "p1", "from_user_id": "u_x", "to_user_id": "u_z", "amount": 100, "created_at": T},
+            {"id": "p2", "from_user_id": "u_y", "to_user_id": "u_x", "amount": 100, "created_at": T},
+            {"id": "p3", "from_user_id": "u_z", "to_user_id": "u_x", "amount": 100, "created_at": iso_in(-60)}]))
+        x = login("x")
+        self.assertEqual(call("GET", "/me" + q(as_of=iso_in(-7200)), token=x)[1]["balance"], 0)  # opening
+        # x's balance at T is 0 - 90 + 100 = 10 when both movements at T are combined
+        s, r, _ = corr(x, "p1", "k", expected_revision=1, amount=90, effective_at=T, reason="partial")
+        self.assertEqual(s, 201, r)
+
+    def test_linked_payments_immutable(self):
+        reset(fixture(ops=["u_cy"]))
+        t = {h: login(h) for h in ("ada", "bob", "cy")}
+        sp = call("POST", "/settlements", {"transfers": [{"from_handle": "ada", "to_handle": "bob", "amount": 5}]},
+                  t["cy"], "s")[1]["payments"][0]
+        self.err(corr(t["ada"], sp["payment_id"], "k", expected_revision=1, amount=1, effective_at=sp["created_at"],
+                      reason="x"), 422, "linked_payment_immutable")
+        revs = call("GET", "/payments/%s/revisions" % sp["payment_id"], token=t["ada"])[1]["revisions"]
+        self.assertEqual(revs[0]["effective_at"], sp["created_at"])
+        a = call("POST", "/authorizations", {"to_handle": "bob", "amount": 50}, t["ada"], "a")[1]
+        cp = call("POST", "/authorizations/%s/capture" % a["authorization_id"], {}, t["bob"], "c")[1]
+        self.err(corr(t["ada"], cp["payment_id"], "k", expected_revision=1, amount=1, effective_at=cp["created_at"],
+                      reason="x"), 422, "linked_payment_immutable")
+
+    def test_concurrent_same_expected_revision(self):
+        a = self.t["ada"]
+        p = self.pay(amount=100)
+        with ThreadPoolExecutor(20) as ex:
+            res = list(ex.map(lambda i: corr(a, p["payment_id"], "k%d" % i, expected_revision=1, amount=100 + i,
+                                             effective_at=p["created_at"], reason="r")[0], range(20)))
+        self.assertEqual(sorted(res), [201] + [409] * 19)
+        self.assertEqual(sum(me(self.t[h])["balance"] for h in self.t), 13000)
+
+
+class HistoricalHolds(Base):
+    def test_hold_lifecycle_history(self):
+        a = self.t["ada"]
+        before = iso_in(0)
+        h = call("POST", "/authorizations", {"to_handle": "bob", "amount": 2000}, a, "a")[1]
+        self.assertIsNone(h["closed_at"])
+        c = call("POST", "/authorizations/%s/capture" % h["authorization_id"], {"amount": 500, "final": False},
+                 self.t["bob"], "c")[1]
+        mid = iso_in(0)
+        v = call("POST", "/authorizations/%s/void" % h["authorization_id"], None, a)[1]
+        self.assertTrue(v["closed_at"])
+        view = lambda **kw: call("GET", "/me" + q(**kw), token=a)[1]
+        m = view(as_of=before)
+        self.assertEqual((m["total"], m["held"], m["available"]), (10000, 0, 10000))
+        m = view(as_of=h["created_at"])
+        self.assertEqual((m["total"], m["held"], m["available"]), (10000, 2000, 8000))
+        m = view(as_of=c["created_at"])
+        self.assertEqual((m["total"], m["held"], m["available"]), (9500, 1500, 8000))
+        m = view(as_of=v["closed_at"])
+        self.assertEqual((m["total"], m["held"], m["available"]), (9500, 0, 9500))
+        # not yet knowing the void, the hold runs on until its deadline
+        m = view(as_of=iso_in(60), known_at=mid)
+        self.assertEqual((m["held"], m["available"]), (1500, 8000))
+        m = view(as_of=ts_after(h["expires_at"], 0), known_at=mid)
+        self.assertEqual(m["held"], 0)
+        m = view(known_at=mid)  # as_of = now
+        self.assertEqual(m["held"], 1500)
+        st = call("GET", "/statement", token=a)[1]
+        self.assertEqual([(e["payment"]["payment_id"], e["payment"]["authorization_id"]) for e in st["entries"]],
+                         [(c["payment_id"], h["authorization_id"])])
+
+    def test_expiry_closed_at(self):
+        import time
+        reset(dict(fixture(), authorization_ttl_seconds=1))
+        a = login("ada")
+        h = call("POST", "/authorizations", {"to_handle": "bob", "amount": 100}, a, "a")[1]
+        time.sleep(1.1)
+        got = call("GET", "/authorizations", token=a)[1]["authorizations"][0]
+        self.assertEqual((got["status"], got["closed_at"]), ("expired", h["expires_at"]))
+        m = call("GET", "/me" + q(as_of=ts_after(h["expires_at"], -1)), token=a)[1]
+        self.assertEqual(m["held"], 100)
+        m = call("GET", "/me" + q(as_of=h["expires_at"]), token=a)[1]
+        self.assertEqual(m["held"], 0)
+
+
+class Stage3Import(Stage1Import):
+    def test_stage1_export_history(self):
+        exp, tok, pay, rq = self.stage1_export()
+        self.assertEqual(call("POST", "/_test/import", exp)[0], 204)
+        st = call("GET", "/statement", token=tok)[1]
+        self.assertEqual((st["opening_balance"], st["closing_balance"], [e["delta"] for e in st["entries"]]),
+                         (10000, 9750, [-250]))
+        s, r, _ = corr(tok, pay["payment_id"], "k", expected_revision=1, amount=200, effective_at=pay["created_at"],
+                       reason="fix")
+        self.assertEqual(s, 201, r)
+        exp3 = call("GET", "/_test/export")[1]
+        reset()
+        self.assertEqual(call("POST", "/_test/import", exp3)[0], 204)
+        self.assertEqual(len(call("GET", "/payments/%s/revisions" % pay["payment_id"], token=tok)[1]["revisions"]), 2)
+        self.assertEqual(call("GET", "/statement" + q(snapshot=st["snapshot"]), token=tok)[1]["closing_balance"], 9750)
+        self.assertEqual(me(tok)["balance"], 9800)
+
+    def test_stage2_export_with_captures(self):
+        import os, subprocess, socket, time
+        here = os.path.dirname(os.path.abspath(__file__))
+        s2 = os.path.join(here, "..", "stage-2", "server.py")
+        if not os.path.exists(s2):
+            self.skipTest("stage-2 source not present")
+        sock = socket.socket(); sock.bind(("127.0.0.1", 0)); port = sock.getsockname()[1]; sock.close()
+        proc = subprocess.Popen([sys.executable, s2], env=dict(os.environ, PORT=str(port)), cwd=os.path.dirname(s2),
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        global HOST
+        saved = HOST
+        try:
+            HOST = "127.0.0.1:%d" % port
+            for _ in range(100):
+                try:
+                    http.client.HTTPConnection(HOST, timeout=1).request("GET", "/health"); break
+                except OSError:
+                    time.sleep(0.05)
+            reset()
+            ada, bob = login("ada"), login("bob")
+            h = call("POST", "/authorizations", {"to_handle": "bob", "amount": 2000}, ada, "a")[1]
+            c = call("POST", "/authorizations/%s/capture" % h["authorization_id"], {"amount": 500, "final": False},
+                     bob, "c")[1]
+            exp = call("GET", "/_test/export")[1]
+        finally:
+            HOST = saved
+            proc.terminate(); proc.wait()
+        self.assertEqual(call("POST", "/_test/import", exp)[0], 204)
+        m = me(ada)
+        self.assertEqual((m["total"], m["held"], m["available"]), (9500, 1500, 8000))
+        m = call("GET", "/me" + q(as_of=c["created_at"]), token=ada)[1]
+        self.assertEqual((m["total"], m["held"]), (9500, 1500))
+        m = call("GET", "/me" + q(as_of=ts_after(h["created_at"], -1)), token=ada)[1]
+        self.assertEqual((m["total"], m["held"]), (10000, 0))
+        self.assertEqual(call("POST", "/authorizations/%s/capture" % h["authorization_id"], {"amount": 500, "final": False},
+                              bob, "c")[:2], (200, c))
+        self.err(corr(ada, c["payment_id"], "k", expected_revision=1, amount=1, effective_at=c["created_at"],
+                      reason="x"), 422, "linked_payment_immutable")
+
+    def err(self, resp, status, code):
+        self.assertEqual((resp[0], resp[1]["error"]["code"]), (status, code), resp)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

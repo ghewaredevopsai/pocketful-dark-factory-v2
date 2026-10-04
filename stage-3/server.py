@@ -1,4 +1,4 @@
-"""Pocketful stage 2: a wallet/payments HTTP service with holds, plus its browser UI.
+"""Pocketful stage 3: wallet/payments HTTP service with holds, history, statements and corrections, plus its UI.
 
 One process, one in-memory State object, one lock (LOCK). Every read and every
 read-modify-write of state happens while LOCK is held, so LOCK is the single
@@ -7,6 +7,9 @@ together or not at all. Password hashing (slow by design) runs outside LOCK.
 Amounts are Python ints (parsed from JSON as Decimal, never float).
 Holds: each user carries "held" (sum of open authorization remainders); available = balance - held.
 Expiry is evaluated lazily: every locked operation first closes holds whose expires_at <= now.
+History: every payment keeps immutable revisions (amount, effective time, recorded time); every user keeps an
+opening balance; every hold keeps its lifecycle (creation, captures, close). Historical reads (as_of, known_at,
+statements) are recomputed from those records: total = opening + selected payment deltas, held = hold events.
 """
 import datetime
 import hashlib
@@ -16,6 +19,7 @@ import os
 import re
 import secrets
 import threading
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -70,6 +74,24 @@ def parse_ts(s):
     if dt.tzinfo is None:
         raise invalid("timestamp needs an offset")
     return dt
+
+
+RFC3339_RE = re.compile(r"^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:\d{2})$")
+
+
+def instant(value, name):
+    """Strict RFC 3339 instant with an offset (query or body). Returns (datetime, echo string)."""
+    if not isinstance(value, str):
+        raise invalid("%s must be an RFC 3339 instant with an offset" % name)
+    if re.match(r"^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(\.\d+)? \d{2}:\d{2}$", value):
+        value = value[:-6] + "+" + value[-5:]  # an unencoded '+' in a query string arrives as a space
+    if not RFC3339_RE.match(value):
+        raise invalid("%s must be an RFC 3339 instant with an offset" % name)
+    try:
+        dt = datetime.datetime.fromisoformat(value.replace("Z", "+00:00").replace("z", "+00:00").replace("t", "T"))
+    except ValueError:
+        raise invalid("%s is not a valid instant" % name)
+    return dt, value
 
 
 def _reject_constant(name):
@@ -230,6 +252,9 @@ class State:
         self.idem = {}             # "uid\x00path\x00key" -> {"canon": str, "response": str}
         self.operators = set()
         self.used = set()          # every id ever issued or seeded, of any kind (M1)
+        self.user_pays = {}        # user id -> payments sent or received (creation order)
+        self.user_auths = {}       # user id -> authorizations where the user is the payer
+        self.snapshots = {}        # statement snapshot token -> {"uid", "result"}
         self.seq = 0
         self.last_ts = None
 
@@ -265,6 +290,11 @@ class State:
         v["remaining_amount"] = remaining(a)
         return v
 
+    @staticmethod
+    def revision_view(p, r):
+        return {"payment_id": p["payment_id"], "revision": r["revision"], "amount": r["amount"],
+                "effective_at": r["effective_at"], "recorded_at": r["recorded_at"], "reason": r["reason"]}
+
     # holds
     def expire(self):
         """Close every open authorization whose expires_at is at or before now (lazy clock expiry)."""
@@ -274,10 +304,18 @@ class State:
         for a in [a for a in self.open_auths.values() if a["_exp"] <= now]:
             self.close_auth(a, "expired")
 
-    def close_auth(self, a, status):
-        """Release the uncaptured remainder exactly once and record the final status."""
+    def close_auth(self, a, status, at=None):
+        """Release the uncaptured remainder exactly once and record the final status and close time.
+
+        Expiry closes at expires_at (whenever it is noticed); capture and void close at their event time `at`.
+        """
         self.users[a["from_user_id"]]["held"] -= remaining(a)
         a["status"] = status
+        if status == "expired":
+            a["closed_at"] = a["expires_at"]
+        else:
+            a["closed_at"] = iso(at)
+            a["_close"] = at
         self.open_auths.pop(a["authorization_id"], None)
 
     def available(self, u):
@@ -294,11 +332,18 @@ class State:
             "visibility": visibility, "request_id": request_id,
             "authorization_id": authorization_id,
             "settlement_id": settlement_id, "created_at": iso(ts),
-            "_ts": ts, "_seq": self.next_seq(),
+            "_ts": ts, "_seq": self.next_seq(), "_revs": [first_revision(amount, ts, iso(ts))],
         }
+        self.index_payment(p)
+        return p
+
+    def index_payment(self, p):
         self.payments.append(p)
         self.payment_ids[p["payment_id"]] = p
-        return p
+        self.used.add(p["payment_id"])
+        self.user_pays.setdefault(p["from_user_id"], []).append(p)
+        if p["to_user_id"] != p["from_user_id"]:
+            self.user_pays.setdefault(p["to_user_id"], []).append(p)
 
     def add_request(self, requester, payer, amount, note, ts):
         r = {
@@ -324,6 +369,7 @@ class State:
     def index_auth(self, a):
         self.auths[a["authorization_id"]] = a
         self.used.add(a["authorization_id"])
+        self.user_auths.setdefault(a["from_user_id"], []).append(a)
         if a["status"] == "open":
             self.open_auths[a["authorization_id"]] = a
             self.users[a["from_user_id"]]["held"] += remaining(a)
@@ -335,9 +381,12 @@ class State:
             "authorization_ttl_seconds": self.ttl,
             "users": [{k: v for k, v in u.items() if k != "held"} for u in self.users.values()],
             "tokens": dict(self.tokens),
-            "payments": [dict(self.payment_view(p), _seq=p["_seq"]) for p in self.payments],
+            "payments": [dict(self.payment_view(p), _seq=p["_seq"],
+                              revisions=[self.revision_view(p, r) for r in p["_revs"]]) for p in self.payments],
             "requests": [dict(self.request_view(r), _seq=r["_seq"]) for r in self.requests.values()],
-            "authorizations": [dict(self.auth_view(a), _seq=a["_seq"]) for a in self.auths.values()],
+            "authorizations": [dict(self.auth_view(a), _seq=a["_seq"], lifecycle=lifecycle_out(a))
+                               for a in self.auths.values()],
+            "snapshots": [dict(s, result=dict(s["result"])) for s in self.snapshots.values()],
             "idempotency": [dict(k=k, **v) for k, v in self.idem.items()],
             "operators": sorted(self.operators),
             "seq": self.seq,
@@ -381,7 +430,8 @@ class State:
                 need(False, "user password hash")
             nu = {"id": u["id"], "email": u["email"], "display_name": u["display_name"],
                   "handle": u["handle"], "balance": integral(u["balance"]),
-                  "salt": u["salt"], "hash": u["hash"], "n": integral(n), "held": 0}
+                  "salt": u["salt"], "hash": u["hash"], "n": integral(n), "held": 0,
+                  "opening": integral(u["opening"]) if is_int(u.get("opening")) else None}
             st.users[nu["id"]] = nu
             st.by_email[nu["email"].lower()] = nu["id"]
             st.by_handle[nu["handle"]] = nu["id"]
@@ -404,9 +454,19 @@ class State:
                                          "amount", "currency", "note", "visibility", "request_id",
                                          "authorization_id", "settlement_id", "created_at")}
             np_.update(amount=integral(p["amount"]), _ts=ts, _seq=integral(p["_seq"]))
-            st.payments.append(np_)
-            st.payment_ids[np_["payment_id"]] = np_
-            st.used.add(np_["payment_id"])
+            revs = p.get("revisions")
+            if revs is None:  # stage-1/stage-2 export: no corrections existed
+                np_["_revs"] = [first_revision(np_["amount"], ts, p["created_at"])]
+            else:
+                need(isinstance(revs, list) and revs, "payment revisions")
+                np_["_revs"] = []
+                for i, r in enumerate(revs, 1):
+                    need(isinstance(r, dict) and integral(r.get("revision")) == i and is_int(r.get("amount"))
+                         and isinstance(r.get("reason"), str), "payment revision")
+                    np_["_revs"].append({"revision": i, "amount": integral(r["amount"]), "reason": r["reason"],
+                                         "effective_at": r.get("effective_at"), "recorded_at": r.get("recorded_at"),
+                                         "_eff": parse_ts(r.get("effective_at")), "_rec": parse_ts(r.get("recorded_at"))})
+            st.index_payment(np_)
             if np_["settlement_id"]:
                 st.used.add(np_["settlement_id"])
         need(isinstance(d.get("requests"), list), "requests")
@@ -442,9 +502,21 @@ class State:
             na.update(amount=integral(a["amount"]), captured_amount=integral(a["captured_amount"]),
                       payment_ids=list(a["payment_ids"]), _ts=parse_ts(a.get("created_at")),
                       _exp=parse_ts(a.get("expires_at")), _seq=integral(a["_seq"]))
+            lifecycle_in(st, na, a.get("lifecycle"), need)
             st.index_auth(na)
         for u in st.users.values():
             need(u["held"] <= u["balance"], "holds exceed balance")
+        # opening balances: carried by stage-3 exports; derived for stage-1/2 exports (no corrections existed)
+        for u in st.users.values():
+            if u["opening"] is None:
+                u["opening"] = u["balance"] - sum(signed(p, u["id"], p["_revs"][-1]["amount"])
+                                                  for p in st.user_pays.get(u["id"], ()))
+        snaps = d.get("snapshots", [])
+        need(isinstance(snaps, list), "snapshots")
+        for sn in snaps:
+            need(isinstance(sn, dict) and isinstance(sn.get("token"), str) and sn.get("uid") in st.users
+                 and isinstance(sn.get("result"), dict), "snapshot")
+            st.snapshots[sn["token"]] = json_ints(sn)
         need(isinstance(d.get("idempotency"), list), "idempotency")
         for rec in d["idempotency"]:
             need(isinstance(rec, dict) and isinstance(rec.get("k"), str)
@@ -461,7 +533,51 @@ class State:
 
 AUTH_FIELDS = ("authorization_id", "from_user_id", "from_handle", "to_user_id", "to_handle", "amount",
                "captured_amount", "currency", "note", "visibility", "status", "expires_at", "payment_id",
-               "payment_ids", "created_at")
+               "payment_ids", "created_at", "closed_at")
+
+
+def json_ints(v):
+    """Turn parsed JSON numbers (Decimal) back into ints throughout an imported structure."""
+    if isinstance(v, dict):
+        return {k: json_ints(x) for k, x in v.items()}
+    if isinstance(v, list):
+        return [json_ints(x) for x in v]
+    if isinstance(v, Decimal):
+        i = integral(v)
+        if i is None:
+            raise invalid("invalid state: non-integer number")
+        return i
+    return v
+
+
+def lifecycle_out(a):
+    return {"created": iso(a["_ct"]) if a.get("_ct") is not None else None, "initial": a.get("_init"),
+            "captures": [[iso(t), amt] for t, amt in a.get("_caps", [])],
+            "close": iso(a["_close"]) if a.get("_close") is not None else None}
+
+
+def lifecycle_in(st, a, lc, need):
+    """Restore a hold's lifecycle; stage-2 exports carry none, so derive it from the capture payments."""
+    a["_caps"], a["_close"] = [], None
+    if lc is not None:
+        need(isinstance(lc, dict), "lifecycle")
+        a["_ct"] = parse_ts(lc["created"]) if lc.get("created") is not None else None
+        a["_init"] = integral(lc.get("initial")) if lc.get("initial") is not None else a["amount"]
+        for t, amt in lc.get("captures") or []:
+            a["_caps"].append((parse_ts(t), integral(amt)))
+        a["_close"] = parse_ts(lc["close"]) if lc.get("close") is not None else None
+    else:
+        a["_ct"], a["_init"] = a["_ts"], a["amount"]
+        for pid in a["payment_ids"]:
+            p = st.payment_ids.get(pid)
+            need(p is not None, "capture payment")
+            a["_caps"].append((p["_ts"], p["amount"]))
+        if a["status"] in ("captured", "voided"):
+            a["_close"] = max([a["_ts"]] + [t for t, _ in a["_caps"]])
+    if a.get("closed_at") is None and a["status"] != "open":
+        a["closed_at"] = a["expires_at"] if a["status"] == "expired" else iso(a["_close"] or a["_ts"])
+    if a["status"] == "open":
+        a["closed_at"] = None
 
 
 def remaining(a):
@@ -535,12 +651,12 @@ def state_from_fixture(fx):
             raise invalid("duplicate email or handle")
         fresh_id(uid, "user")
         st.users[uid] = {"id": uid, "email": email, "display_name": dn, "handle": handle,
-                         "balance": bal, "held": 0}
+                         "balance": bal, "held": 0, "opening": bal}
         st.by_email[email.lower()] = uid
         st.by_handle[handle] = uid
         pending_pw.append((uid, pw))
 
-    now = now_dt()
+    now = now_dt()  # reset time
     seeded = []  # (dict, explicit ts or None)
     for p in typed(fx, "payments", list, False) or []:
         if not isinstance(p, dict):
@@ -560,17 +676,21 @@ def state_from_fixture(fx):
             raise invalid("bad visibility")
         if any(v is not None and not isinstance(v, str) for v in links.values()):
             raise bad("request_id/settlement_id/authorization_id must be strings")
-        ts = parse_ts(p["created_at"]) if "created_at" in p else None
+        given = None
+        if "created_at" in p:
+            ts, given = instant(p["created_at"], "created_at")
+            if ts > now:
+                raise invalid("a seeded payment's created_at is in the future")
+        else:
+            ts = None
         fu, tu = st.users[frm], st.users[to]
         rec = {"payment_id": pid, "from_user_id": frm, "from_handle": fu["handle"],
                "to_user_id": to, "to_handle": tu["handle"], "amount": amt,
                "currency": currency, "note": note or "", "visibility": vis,
                "request_id": links["request_id"], "authorization_id": links["authorization_id"],
-               "settlement_id": links["settlement_id"]}
+               "settlement_id": links["settlement_id"], "_given": given}
         if links["settlement_id"]:
             st.used.add(links["settlement_id"])
-        st.payment_ids[pid] = rec
-        st.payments.append(rec)
         seeded.append((rec, ts))
     for r in typed(fx, "requests", list, False) or []:
         if not isinstance(r, dict):
@@ -644,8 +764,20 @@ def state_from_fixture(fx):
     for i, (rec, ts) in enumerate(seeded):
         ts = ts or now + datetime.timedelta(microseconds=i)
         rec["_ts"], rec["_seq"] = ts, st.next_seq()
-        rec["created_at"] = iso(ts)
+        rec["created_at"] = rec.pop("_given", None) or iso(ts)
+        if "settlement_id" in rec:  # only payments carry settlement_id: revision 1 at its created_at; not replayed on balances
+            rec["_revs"] = [first_revision(rec["amount"], ts, rec["created_at"])]
+            st.index_payment(rec)
+            st.users[rec["from_user_id"]]["opening"] += rec["amount"]
+            st.users[rec["to_user_id"]]["opening"] -= rec["amount"]
     for rec in seeded_auths:
+        # open holds start at their created_at (default: reset time); closed seeded holds carry no lifecycle
+        rec["_caps"], rec["_close"] = [], None
+        if rec["status"] == "open":
+            rec["_ct"], rec["_init"], rec["closed_at"] = rec["_ts"], rec["amount"] - rec["captured_amount"], None
+        else:
+            rec["_ct"], rec["_init"] = None, 0
+            rec["closed_at"] = rec["expires_at"] if rec["status"] == "expired" else iso(now)
         st.index_auth(rec)
     for u in st.users.values():
         if u["held"] > u["balance"]:
@@ -677,10 +809,218 @@ def newest_first(items):
 # ---------------------------------------------------------------- handlers
 # Each handler runs with LOCK held unless noted, and returns (status, body).
 
+# ---------------------------------------------------------------- history (stage 3)
+
+def first_revision(amount, ts, ts_text):
+    return {"revision": 1, "amount": amount, "effective_at": ts_text, "recorded_at": ts_text, "reason": "",
+            "_eff": ts, "_rec": ts}
+
+
+def selected(p, known):
+    """The latest revision recorded at or before `known` (None = everything recorded so far)."""
+    revs = p["_revs"]
+    if known is None:
+        return revs[-1]
+    for r in reversed(revs):
+        if r["_rec"] <= known:
+            return r
+    return None
+
+
+def signed(p, uid, amount):
+    return -amount if p["from_user_id"] == uid else amount
+
+
+def payment_events(st, uid, known, override=None):
+    """(effective time, delta, payment, revision) for the user's payments under `known`.
+
+    `override` = (payment, revision) substitutes a candidate latest revision (correction pre-check).
+    """
+    out = []
+    for p in st.user_pays.get(uid, ()):
+        r = override[1] if override and override[0] is p else selected(p, known)
+        if r is not None:
+            out.append((r["_eff"], signed(p, uid, r["amount"]), p, r))
+    return out
+
+
+def hold_events(st, uid, known):
+    """(time, change in held) for the user's holds as known at `known` (None = all known)."""
+    out = []
+    for a in st.user_auths.get(uid, ()):
+        ct = a.get("_ct")
+        if ct is None or (known is not None and ct > known):
+            continue  # seeded closed hold without a lifecycle, or creation not yet known
+        out.append((ct, a["_init"]))
+        captured = 0
+        for t, amt in a["_caps"]:
+            if known is None or t <= known:
+                out.append((t, -amt))
+                captured += amt
+        close = a.get("_close")
+        if close is None or (known is not None and close > known):
+            close = a["_exp"]  # as far as this view knows, the hold runs to its deadline
+        if a["_init"] - captured > 0:
+            out.append((close, -(a["_init"] - captured)))
+    return out
+
+
+def total_at(st, user, as_of, known):
+    return user["opening"] + sum(d for t, d, _, _ in payment_events(st, user["id"], known) if t <= as_of)
+
+
+def held_at(st, user, as_of, known):
+    return sum(d for t, d in hold_events(st, user["id"], known) if t <= as_of)
+
+
+def boundary_ok(st, user, override):
+    """True when total and available stay >= 0 after every effective/event boundary (latest revisions)."""
+    events = [(t, d, 0) for t, d, _, _ in payment_events(st, user["id"], None, override)]
+    events += [(t, 0, d) for t, d in hold_events(st, user["id"], None)]
+    events.sort(key=lambda e: e[0])
+    total, held, i = user["opening"], 0, 0
+    while i < len(events):
+        t = events[i][0]
+        while i < len(events) and events[i][0] == t:  # combine every movement at one instant
+            total += events[i][1]
+            held += events[i][2]
+            i += 1
+        if total < 0 or total - held < 0:
+            return False
+    return True
+
+
+def read_now(st, q):
+    """Request start, never before the last recorded instant (the clock is forced monotonic)."""
+    now = q["_now"]
+    if st.last_ts is not None and st.last_ts >= now:
+        now = st.last_ts + datetime.timedelta(microseconds=1)
+    return now
+
+
+def temporal(q, name):
+    return instant(q[name], name) if name in q else (None, None)
+
+
 def h_me(st, user, q, body):
-    return 200, {"user_id": user["id"], "display_name": user["display_name"], "handle": user["handle"],
-                 "balance": user["balance"], "total": user["balance"], "available": st.available(user),
-                 "held": user["held"], "currency": st.currency, "minor_units": st.minor_units}
+    out = {"user_id": user["id"], "display_name": user["display_name"], "handle": user["handle"],
+           "balance": user["balance"], "total": user["balance"], "available": st.available(user),
+           "held": user["held"], "currency": st.currency, "minor_units": st.minor_units}
+    as_of, as_of_text = temporal(q, "as_of")
+    known, known_text = temporal(q, "known_at")
+    if as_of is None and known is None:
+        return 200, out
+    at = as_of if as_of is not None else read_now(st, q)
+    total = total_at(st, user, at, known)
+    held = held_at(st, user, at, known)
+    out.update(balance=total, total=total, held=held, available=total - held)
+    if as_of_text is not None:
+        out["as_of"] = as_of_text
+    if known_text is not None:
+        out["known_at"] = known_text
+    return 200, out
+
+
+def h_statement(st, user, q, body):
+    limit, offset = page(q)
+    if "snapshot" in q:
+        for f in ("from", "to", "known_at"):
+            if f in q:
+                raise invalid("snapshot cannot be combined with %s" % f)
+        snap = st.snapshots.get(q["snapshot"])
+        if snap is None or snap["uid"] != user["id"]:
+            raise ApiError(404, "not_found", "no such statement snapshot")
+        result = snap["result"]
+    else:
+        frm, frm_text = temporal(q, "from")
+        to, to_text = temporal(q, "to")
+        known, known_text = temporal(q, "known_at")
+        if to is None:
+            to = read_now(st, q)
+        if frm is not None and frm > to:
+            raise invalid("from must not be after to")
+        events = payment_events(st, user["id"], known)
+        events.sort(key=lambda e: (e[0], e[2]["payment_id"]))
+        opening = user["opening"] + sum(d for t, d, _, _ in events if frm is not None and t < frm)
+        running, entries = opening, []
+        for t, d, p, r in events:
+            if (frm is None or t >= frm) and t < to:
+                running += d
+                entries.append({"payment": dict(st.payment_view(p), amount=r["amount"]), "delta": d,
+                                "balance_after": running, "revision": r["revision"],
+                                "effective_at": r["effective_at"], "recorded_at": r["recorded_at"]})
+        result = {"opening_balance": opening, "closing_balance": running, "entries": entries,
+                  "from": frm_text, "to": to_text if to_text is not None else iso(to), "known_at": known_text}
+        token = secrets.token_urlsafe(18)
+        st.snapshots[token] = {"uid": user["id"], "result": result, "token": token}
+        result["snapshot"] = token
+    entries = result["entries"]
+    out = {"opening_balance": result["opening_balance"], "entries": entries[offset:offset + limit],
+           "closing_balance": result["closing_balance"], "has_more": len(entries) > offset + limit,
+           "snapshot": result["snapshot"], "from": result["from"], "to": result["to"]}
+    if result["known_at"] is not None:
+        out["known_at"] = result["known_at"]
+    return 200, out
+
+
+def find_own_payment(st, user, pid):
+    p = st.payment_ids.get(pid)
+    if p is None or user["id"] not in (p["from_user_id"], p["to_user_id"]):
+        return None, p
+    return p, p
+
+
+def h_revisions(st, user, q, body, pid):
+    p, _ = find_own_payment(st, user, pid)
+    if p is None:
+        raise ApiError(404, "not_found", "no such payment")
+    return 200, {"revisions": [st.revision_view(p, r) for r in p["_revs"]]}
+
+
+def h_correction(st, user, q, body, pid):
+    p = st.payment_ids.get(pid)
+    if p is None:
+        raise ApiError(404, "not_found", "no such payment")
+    if p["from_user_id"] != user["id"]:
+        raise ApiError(403, "forbidden", "only the original sender may correct a payment")
+    if p.get("settlement_id") or p.get("authorization_id"):
+        raise ApiError(422, "linked_payment_immutable", "settlement members and captures cannot be corrected")
+    for f in ("expected_revision", "amount", "effective_at", "reason"):
+        if f not in body:
+            raise invalid("%s is required" % f)
+    expected = integral(body["expected_revision"])
+    if expected is None or expected < 1:
+        raise invalid("expected_revision must be a positive integer")
+    amount = integral(body["amount"])
+    if amount is None or amount < 0 or amount > MAX_AMOUNT:
+        raise invalid("amount must be an integer from 0 to %d" % MAX_AMOUNT)
+    reason = body["reason"]
+    if not isinstance(reason, str) or not 1 <= len(reason) <= 200:
+        raise invalid("reason must be a string of 1 to 200 characters")
+    eff, eff_text = instant(body["effective_at"], "effective_at")
+    if eff > now_dt():
+        raise invalid("effective_at must not be later than now")
+    current = p["_revs"][-1]
+    if expected != current["revision"]:
+        raise ApiError(409, "stale_revision", "the payment is at revision %d" % current["revision"])
+    diff = amount - current["amount"]
+    sender, receiver = st.users[p["from_user_id"]], st.users[p["to_user_id"]]
+    debtor, creditor = (sender, receiver) if diff > 0 else (receiver, sender)
+    if st.available(debtor) < abs(diff):
+        raise ApiError(409, "insufficient_funds", "available balance cannot cover the correction")
+    if creditor["balance"] + abs(diff) > MAX_BALANCE:
+        raise invalid("balance would exceed 2^53")
+    rec = st.stamp()
+    cand = {"revision": current["revision"] + 1, "amount": amount, "effective_at": eff_text,
+            "recorded_at": iso(rec), "reason": reason, "_eff": eff, "_rec": rec}
+    for u in (sender, receiver):
+        if not boundary_ok(st, u, (p, cand)):
+            raise ApiError(409, "historical_overdraft", "the correction would overdraw a wallet in the past")
+    debtor["balance"] -= abs(diff)
+    creditor["balance"] += abs(diff)
+    p["_revs"].append(cand)
+    return 201, st.revision_view(p, cand)
+
 
 
 def h_payment(st, user, q, body):
@@ -886,7 +1226,8 @@ def h_authorize(st, user, q, body):
          "to_user_id": to["id"], "to_handle": to["handle"], "amount": amount, "captured_amount": 0,
          "currency": st.currency, "note": note, "visibility": vis, "status": "open",
          "expires_at": iso(exp), "payment_id": None, "payment_ids": [], "created_at": iso(ts),
-         "_ts": ts, "_exp": exp, "_seq": st.next_seq()}
+         "closed_at": None, "_ts": ts, "_exp": exp, "_seq": st.next_seq(),
+         "_ct": ts, "_init": amount, "_caps": [], "_close": None}
     st.index_auth(a)
     return 201, st.auth_view(a)
 
@@ -919,12 +1260,15 @@ def h_capture(st, user, q, body, aid):
     payer["balance"] -= amount
     payer["held"] -= amount
     user["balance"] += amount
-    p = st.add_payment(payer, user, amount, a["note"], a["visibility"], st.stamp(), authorization_id=aid)
+    ts = st.stamp()
+    p = st.add_payment(payer, user, amount, a["note"], a["visibility"], ts, authorization_id=aid)
     a["captured_amount"] += amount
     a["payment_id"] = p["payment_id"]
     a["payment_ids"].append(p["payment_id"])
+    if a.get("_ct") is not None:
+        a["_caps"].append((ts, amount))
     if final or remaining(a) == 0:
-        st.close_auth(a, "captured")
+        st.close_auth(a, "captured", ts)
     return 201, st.payment_view(p)
 
 
@@ -933,7 +1277,7 @@ def h_void(st, user, q, body, aid):
     if a["from_user_id"] != user["id"]:
         raise ApiError(403, "forbidden", "only the payer may void")
     if a["status"] == "open":
-        st.close_auth(a, "voided")
+        st.close_auth(a, "voided", st.stamp())
     elif a["status"] != "voided":
         raise ApiError(409, "authorization_not_open", "authorization is %s" % a["status"])
     return 200, st.auth_view(a)
@@ -975,6 +1319,9 @@ ROUTES = [
     ("GET", re.compile(r"^/authorizations$"), h_list_auths, False),
     ("POST", re.compile(r"^/authorizations/([^/]+)/capture$"), h_capture, True),
     ("POST", re.compile(r"^/authorizations/([^/]+)/void$"), h_void, False),
+    ("GET", re.compile(r"^/statement$"), h_statement, False),
+    ("POST", re.compile(r"^/payments/([^/]+)/corrections$"), h_correction, True),
+    ("GET", re.compile(r"^/payments/([^/]+)/revisions$"), h_revisions, False),
 ]
 UI_ROUTES = {"/", "/requests", "/split", "/signup", "/login", "/authorizations"}
 UI_ALWAYS = {"/", "/split", "/signup", "/login"}  # no API shares these paths
@@ -1060,7 +1407,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error_body(e)
         except (BrokenPipeError, ConnectionResetError):
             self.close_connection = True
-        except Exception as e:  # never leak a traceback; keep the connection sane
+        except Exception as e:  # never leak a traceback to the client; log it and keep the connection sane
+            traceback.print_exc()
             self.close_connection = True
             try:
                 self.send_error_body(ApiError(500, "internal_error", type(e).__name__))
@@ -1080,6 +1428,7 @@ class Handler(BaseHTTPRequestHandler):
         q = {}
         for k, v in parse_qsl(parts.query, keep_blank_values=True):
             q.setdefault(k, v)
+        q["_now"] = now_dt()  # the instant the request began (default `to` and as_of)
         raw = self.read_body()
         if raw is None:  # cut-off body: never act on a partial request
             self.close_connection = True

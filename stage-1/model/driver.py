@@ -37,6 +37,7 @@ NS = {"user_id": "u", "from_user_id": "u", "to_user_id": "u", "requester_id": "u
       "payment_id": "p", "request_id": "r", "split_id": "s", "settlement_id": "t"}
 IDEM_PATHS = ("/payments", "/requests", "/splits", "/settlements")
 PASSWORD = "correct horse"
+NO_EMPTY_BODY = False  # --no-empty-body: skip the empty-body probe (to look past a known divergence)
 
 
 class Mismatch(Exception):
@@ -217,6 +218,7 @@ class Run:
         self.snap = None    # export snapshot
         self.fixture = None
         self.passwords = {}
+        self.stale = []     # product tokens invalidated by an import
 
     # ---- request building
     def session(self, auth):
@@ -358,6 +360,11 @@ class Run:
             self.fail(i, op, f"import: {e}", product={k: pres.get(k) for k in ("status", "raw", "err")})
         if mres.ok:
             self.b, self.orig = self.snap["b"].clone(), copy.deepcopy(self.snap["orig"])
+            # sessions issued after the export are gone; the model will reissue their ids and token
+            # strings, so retire them and keep only their product tokens as must-be-401 probes
+            tok = self.model.s["tokens"]
+            self.stale += [s["ptok"] for s in self.sessions if tok.get(s["mtok"]) != s["user"]]
+            self.sessions = [s for s in self.sessions if tok.get(s["mtok"]) == s["user"]]
 
     def burst(self, i, op):
         ops = op["ops"]
@@ -449,7 +456,7 @@ def gen_fixture(rng):
           "payments": [{"id": f"p_s{k}", "from_user_id": users[k]["id"], "to_user_id": users[k + 1]["id"],
                         "amount": 100 + k, "note": "seed", "visibility": rng.choice(["public", "private"])}
                        for k in range(rng.randint(0, 2))],
-          "requests": [{"id": f"rq_s{k}", "requester_id": users[k + 1]["id"], "payer_id": users[k]["id"],
+          "requests": [{"id": f"rq_s{k}", "requester_id": users[(k + 1) % n]["id"], "payer_id": users[k]["id"],
                         "amount": rng.choice([5, 1200, 99999]), "note": "seed",
                         "status": rng.choice(["pending", "pending", "paid", "declined", "cancelled"])}
                        for k in range(rng.randint(0, 3))]}
@@ -521,7 +528,7 @@ class Gen:
 
     def maybe_garble(self, body):
         if self.rng.random() < 0.03:
-            return self.rng.choice(["{not json", "[]", "", "null", '"str"'])
+            return self.rng.choice(["{not json", "[]", "null", '"str"'] + ([] if NO_EMPTY_BODY else [""]))
         return body
 
     def call(self, method, path, uid=None, key=False, body=None, ref=None, query="", **kw):
@@ -714,7 +721,8 @@ class Gen:
         return self.call("POST", "/auth/login", body=json.dumps({"email": email, "password": pw}), after="session")
 
     def badauth(self):
-        raw = self.rng.choice(["Bearer nope", "Token abc", "Bearer ", "", None])
+        raw = self.rng.choice(["Bearer nope", "Token abc", "Bearer ", "", None]
+                              + ["Bearer " + t for t in self.run.stale[-3:]] * 2)
         op = self.rng.choice([self.call("GET", "/me"), self.call("GET", "/activity"),
                               self.call("POST", "/payments", key=True, body='{"to_handle":"bob","amount":1}')])
         op["auth"] = {"raw": raw} if raw is not None else None
@@ -854,7 +862,10 @@ def main():
     ap.add_argument("--out", default=None)
     ap.add_argument("--replay", default=None, help="JSON file written by a previous run")
     ap.add_argument("--no-shrink", action="store_true")
+    ap.add_argument("--no-empty-body", action="store_true")
     a = ap.parse_args()
+    global NO_EMPTY_BODY
+    NO_EMPTY_BODY = a.no_empty_body
     if not wait_healthy(a.base):
         print(f"{a.base} not healthy within 60 s")
         return 2

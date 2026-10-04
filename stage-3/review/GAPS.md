@@ -22,4 +22,8 @@ and one correction changing the balance. They leave out everything below; what c
 | M3 / M4 in a real browser at 375 px and 1280 px, layout, contrast, no external requests | `ui3.py`; stage-2 `ui_review.py` regression |
 | Linearizable random histories including time-travel properties | modeler `driver.py` (new seeds, --steps 300) |
 
-Fault injection (`faults3.py`, 9 plants) results are in `VERDICT.md`.
+| Stage-2 API holds closed before the upgrade keep their lifecycle (B1) | `probe_s2_closed_hold_history.py` |
+| Holds seeded closed on stage 2 hold nothing after import (D2/D3 regression) | `probe_s2_seeded_closed_holds.py` |
+| Capture / void racing the clock deadline: no capture or void recorded at or after `expires_at` | `probe_capture_after_deadline.py`, `probe_void_after_deadline.py` |
+
+Fault injection (`faults3.py`, F1–F10) results are in `VERDICT.md`.

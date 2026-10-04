@@ -2,7 +2,8 @@
 """Stage-3 fault injection (scratch copies only). One planted defect per copy of server.py; judged by the modeler's
 driver and probes3.py.
 
-Usage: python3 faults3.py <stage-3 dir> <workdir> <model dir (contains stage-3/model)> <docker network>
+Usage: python3 faults3.py <stage-3 dir> <workdir> <model dir (contains stage-3/model)> <docker network> [stage-2 base]
+With a stage-2 base, probe_s2_closed_hold_history.py also judges every plant (stage-2 holds closed before upgrade).
 """
 import os
 import shutil
@@ -27,6 +28,8 @@ FAULTS = {
     "F7_historical_overdraft_unchecked": ("        if not boundary_ok(st, u, (p, cand)):\n", "        if False:\n"),
     "F8_hold_released_twice_at_expiry": ('            self.close_auth(a, "expired")',
                                          '            self.users[a["from_user_id"]]["held"] -= remaining(a)\n            self.close_auth(a, "expired")'),
+    "F10_closed_stage2_holds_lose_history": ('        a["_caps"] = later\n',
+                                             '        a["_caps"] = later\n        if a["status"] != "open":\n            a["_ct"], a["_init"], a["_caps"] = None, 0, []\n'),
     "F9_historical_release_twice": ("            out.append((close, -(a[\"_init\"] - captured)))\n",
                                     "            out.append((close, -(a[\"_init\"] - captured)))\n            out.append((close, -(a[\"_init\"] - captured)))\n"),
 }
@@ -38,6 +41,7 @@ def sh(cmd, timeout=2400):
 
 def main():
     src, work, model, net = sys.argv[1:5]
+    s2 = sys.argv[5] if len(sys.argv) > 5 else None
     review = os.path.dirname(os.path.abspath(__file__))
     os.makedirs(work, exist_ok=True)
     caught = []
@@ -58,6 +62,11 @@ def main():
         base = "http://%s:8080" % tag
         drv = sh("docker run --rm --network %s -v %s:/m:ro python:3.12-slim python /m/stage-3/model/driver.py --base %s --seeds 1-8 --steps 150 --no-shrink" % (net, model, base))
         prb = sh("docker run --rm --network %s -v %s:/r:ro -w /r python:3.12-slim python probes3.py --base %s" % (net, review, base))
+        if s2:
+            hist = sh("docker run --rm --network %s -v %s:/r:ro -w /r python:3.12-slim python probe_s2_closed_hold_history.py %s %s" % (net, review, s2, base))
+            if "FAIL 0" not in hist.stdout:
+                prb.returncode = 1
+                prb.stdout += "\nFAIL probe_s2_closed_hold_history: " + " | ".join(l for l in hist.stdout.splitlines() if l.startswith("FAIL"))[:200]
         sh("docker rm -f %s" % tag)
         dc, pc = drv.returncode == 1, prb.returncode == 1
         caught.append((name, dc, pc))

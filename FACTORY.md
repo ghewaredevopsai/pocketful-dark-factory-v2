@@ -127,3 +127,6 @@ human message remains the dispatch. Both events are timestamped in the room log.
 - Fault injection shows the checks catch the faults we thought of, not all faults.
 - Costs are list-price equivalents computed from transcripts, not an invoice.
 - Wall-clock times include the two Band delivery stalls.
+- **Known defect in `stage-2/`:** the capture/expiry race fixed in stage 3 (B2) also exists in the accepted
+  `stage-2/` build; the reviewer says so in the room (it did not reproduce under light load at stage 2). Accepted
+  folders are never edited, so it remains there; `stage-3/` and `stage-4/` carry the fix.

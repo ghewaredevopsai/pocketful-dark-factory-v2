@@ -29,7 +29,7 @@ One dispatch 15:40 IST → `RUN COMPLETE` 00:27 IST: **8 h 46 min**, **$74.88** 
 | [`FACTORY.md`](FACTORY.md) | How the factory works, why, what it cost, what it caught, incidents, limits, how to stand it up |
 | [`mandates/`](mandates/) | One generic mandate per seat: coordinator, implementer, modeler, reviewer |
 | [`room.json`](room.json) | The full Band session download, unedited |
-| [`dispatch/run2-pocketful.md`](dispatch/run2-pocketful.md) | The only human message of the run |
+| [`dispatch/pocketful.md`](dispatch/pocketful.md) | The only human message of the run |
 | `stage-N/` | A complete buildable service (Go, `Dockerfile`, `RUN.md`), `LEDGER.md`, the implementer's `tests/` |
 | `stage-N/model/` | The modeler's reference model, differential driver and `RULINGS.md` |
 | `stage-N/review/` | The reviewer's probes, fault-injection scripts, screenshots, `GAPS.md` and verdict |

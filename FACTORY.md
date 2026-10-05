@@ -101,7 +101,7 @@ human message remains the dispatch. Both events are timestamped in the room log.
      --cwd <absolute result repo> --instructions-file mandates/<name>.md
    ```
 3. In the Band console, create a room as the human with all four seats.
-4. Send one message to `@coordinator` (ours is `dispatch/run2-pocketful.md`): task, absolute repo path, one spec
+4. Send one message to `@coordinator` (ours is `dispatch/pocketful.md`): task, absolute repo path, one spec
    path per stage (stage 1 inline), the check command, and the exact first line of each stage report. Send nothing
    else.
 5. Watch for `RUN COMPLETE`. If a seat's queue holds a message long after its last activity, restart that seat's

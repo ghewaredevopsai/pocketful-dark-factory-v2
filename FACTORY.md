@@ -109,12 +109,12 @@ human message remains the dispatch. Both events are timestamped in the room log.
 
 ## What we tried that failed
 
-- **Run 1 (published earlier, kept for reference):** three seats, four human dispatches, one Git identity, a reviewer
-  mandate that said "floating-point money" (a track hint). It reached stage 4 in ~4 h for $78.90, but a competitor
-  review showed the stronger entries had an independent model, per-seat identities and one dispatch. Run 2 adds all
-  three and removes the track hint.
-- **A relay script** that sent stage dispatches when it saw a report missed run 1's stage-1 report (wrong wording)
-  and once ran the harness from the wrong directory. Self-opening stages replaced it.
+- **Three seats and a stage-by-stage relay.** An early design had no modeler and an external script that sent each
+  stage when it saw a report. The relay broke on a report worded differently and on a wrong working directory, and
+  without a second reading of the spec, review alone carried the burden of finding what the checks never asked.
+  Self-opening stages and the modeler replaced both; the reviewer's mandate gained fault injection.
+- **A track word in a mandate.** An early reviewer mandate said "floating-point money"; it now says "floating-point
+  for quantities defined as whole units". Mandates are scanned with the event's vocabulary check before every run.
 - **Seat-owned rooms** (`band chat new` from a seat) cannot be dispatched into by the human; create rooms in the
   console. **Bare-context Claude Code seats** refuse subscription auth.
 - **Isolated checks on our host** needed a local patch: the judge-runner image's browser download picked an

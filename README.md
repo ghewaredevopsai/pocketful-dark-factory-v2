@@ -43,7 +43,7 @@ One dispatch 15:40 IST → `RUN COMPLETE` 00:27 IST: **8 h 46 min**, **$74.88** 
 | Gates 1, 2, 4 (seats, reciprocal @handles, generic mandates) | `mandates/`, `room.json` | `python -m harness check <clone> --track pocketful` |
 | One human message | `room.json` | `python3 tools/provenance.py .` → "Human text messages: 1" |
 | Every commit came from a seat in the room | Git + `room.json` | `git log --format=%an \| sort \| uniq -c`; table below |
-| 36 / 36 planted faults caught | `stage-N/review/*verdict*`, `faults*.py` | rerun the reviewer's fault scripts per stage |
+| 36 / 36 planted faults caught | `stage-N/review/VERDICT.md`, `faults*.py` | rerun the reviewer's fault scripts per stage |
 | What the shipped checks never asked | `stage-N/review/GAPS.md` | — |
 | Second reading of the spec | `stage-N/model/RULINGS.md`, `driver.py` | `python3 stage-N/model/driver.py --base <url> --seeds 1-20` |
 | Cost per seat | FACTORY.md | `python3 tools/seat_cost.py --repo <this repo> <seat transcript dirs>` |
